@@ -4,4 +4,4 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 def index(request):
-    return HttpResponse("Hello, world ! Bienvenue à la racine de notre application d'inventaire !")
+    return render(request, "inventaire/index.html")
