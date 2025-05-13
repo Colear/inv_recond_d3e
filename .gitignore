@@ -4,3 +4,6 @@ db.sqlite3
 # Ignorer les fichiers Python précompilés
 __pycache__/
 *.pyc
+
+# Ignorer le paramétrage de VSCode
+.vscode
