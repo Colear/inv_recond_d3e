@@ -1,2 +1,6 @@
 # ignorer la base de donnée 
 db.sqlite3
+
+# Ignorer les fichiers Python précompilés
+__pycache__/
+*.pyc
