@@ -18,11 +18,11 @@ fieldfile = FieldFile(None, FakeField, "dummy.txt")
 
 
 class HomePageView(TemplateView):
-    template_name = "app/home.html"
+    template_name = "inventaire/home.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        messages.info(self.request, "hello http://example.com")
+        messages.info(self.request, "Bienvenue dans l'application d'inventaire de l'atelier reconditionnement numérique !")
         return context
 
 
@@ -35,32 +35,32 @@ class GetParametersMixin:
 
 
 class DefaultFormsetView(GetParametersMixin, FormView):
-    template_name = "app/formset.html"
+    template_name = "inventaire/formset.html"
     form_class = ContactFormSet
 
 
 class DefaultFormView(GetParametersMixin, FormView):
-    template_name = "app/form.html"
+    template_name = "inventaire/form.html"
     form_class = ContactForm
 
 
 class DefaultFormByFieldView(GetParametersMixin, FormView):
-    template_name = "app/form_by_field.html"
+    template_name = "inventaire/form_by_field.html"
     form_class = ContactForm
 
 
 class FormHorizontalView(GetParametersMixin, FormView):
-    template_name = "app/form_horizontal.html"
+    template_name = "inventaire/form_horizontal.html"
     form_class = ContactForm
 
 
 class FormInlineView(GetParametersMixin, FormView):
-    template_name = "app/form_inline.html"
+    template_name = "inventaire/form_inline.html"
     form_class = ContactForm
 
 
 class FormWithFilesView(GetParametersMixin, FormView):
-    template_name = "app/form_with_files.html"
+    template_name = "inventaire/form_with_files.html"
     form_class = FilesForm
 
     def get_initial(self):
@@ -68,7 +68,7 @@ class FormWithFilesView(GetParametersMixin, FormView):
 
 
 class PaginationView(TemplateView):
-    template_name = "app/pagination.html"
+    template_name = "inventaire/pagination.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -90,4 +90,4 @@ class PaginationView(TemplateView):
 
 
 class MiscView(TemplateView):
-    template_name = "app/misc.html"
+    template_name = "inventaire/misc.html"
