@@ -1,0 +1,42 @@
+{% extends 'inventaire/new_bs.html' %}
+
+{% load django_bootstrap5 %}
+
+
+{% block body %}
+
+    <nav class="navbar navbar-expand-lg bg-info-subtle" data-bs-theme="dark">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Accueil</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'formset_default' %}">Inventaire</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'nouveau_materiel' %}">Nouveau matériel</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'form_by_field' %}">Sortie de matériel</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'form_horizontal' %}">Travailler sur...</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'form_inline' %}">Anomalies</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'form_with_files' %}">Rapports</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'misc' %}">Mon compte</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>{% block title %} TITRE {% endblock %}</h1>
+
+        {% block contenu %} CONTENU {% endblock %}
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            var active_link = document.querySelector("a[href='" + location.pathname + "']");
+            active_link.classList.add("active");
+            active_link.setAttribute("aria-current", "page");
+        });
+    </script>
+
+{% endblock %}

@@ -7,6 +7,7 @@ from django.views.generic import FormView
 from django.views.generic.base import TemplateView
 
 from .forms import ContactForm, ContactFormSet, FilesForm
+from .formulaires.materiel import MaterielForm
 
 
 # http://yuji.wordpress.com/2013/01/30/django-form-field-in-initial-data-requires-a-fieldfile-instance/
@@ -38,11 +39,14 @@ class DefaultFormsetView(GetParametersMixin, FormView):
     template_name = "inventaire/formset.html"
     form_class = ContactFormSet
 
+class NouveauMaterielView(GetParametersMixin, FormView):
+    template_name = "inventaire/nouveau_materiel.html"
+    form_class = MaterielForm
 
-class DefaultFormView(GetParametersMixin, FormView):
+""" class DefaultFormView(GetParametersMixin, FormView):
     template_name = "inventaire/form.html"
     form_class = ContactForm
-
+ """
 
 class DefaultFormByFieldView(GetParametersMixin, FormView):
     template_name = "inventaire/form_by_field.html"

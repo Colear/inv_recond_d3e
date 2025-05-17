@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+
+{% load django_bootstrap5 %}
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+{% bootstrap_setting "color_mode" as COLOR_MODE %}
+
+<html>
+<head>
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}    
+</head>
+<body>
+    {% block body %} BODY {% endblock %}
+</body>
+</html>

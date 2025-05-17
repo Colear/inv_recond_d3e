@@ -7,15 +7,14 @@
         <h1>{% block title %}(no title){% endblock %}</h1>
 
         <ul class="nav nav-pills">
-            <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">home</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'formset_default' %}">formset</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'form_default' %}">form</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'form_by_field' %}">form_by_field</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'form_horizontal' %}">form_horizontal</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'form_inline' %}">form_inline</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'form_with_files' %}">form_with_files</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'pagination' %}">pagination</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'misc' %}">miscellaneous</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Accueil</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'formset_default' %}">Inventaire</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'nouveau_materiel' %}">Nouveau matériel</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'form_by_field' %}">Sortie de matériel</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'form_horizontal' %}">Travailler sur...</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'form_inline' %}">Anomalies</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'form_with_files' %}">Rapports</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'misc' %}">Mon compte</a></li>
         </ul>
 
         {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}

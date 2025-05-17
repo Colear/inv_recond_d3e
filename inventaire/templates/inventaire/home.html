@@ -1,8 +1,10 @@
-{% extends 'inventaire/base.html' %}
+{% extends 'inventaire/menu.html' %}
+
+{% load static %}
 {% load django_bootstrap5 %}
 
-{% block title %}Inventaire{% endblock %}
 
-{% block content %}
-    Application d'inventaire pour l'atelier de reconditionnement numérique</strong>.
+{% block contenu %}
+    {% block title %}Inventaire{% endblock %}
+    Application d'inventaire pour l'atelier de reconditionnement numérique
 {% endblock %}
