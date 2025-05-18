@@ -26,7 +26,7 @@
     </nav>
 
     <div class="container">
-        <h1>{% block title %} TITRE {% endblock %}</h1>
+        <h1 class="text-center pt-4">{% block title %} TITRE {% endblock %}</h1>
 
         {% block contenu %} CONTENU {% endblock %}
     </div>
@@ -34,8 +34,10 @@
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             var active_link = document.querySelector("a[href='" + location.pathname + "']");
-            active_link.classList.add("active");
-            active_link.setAttribute("aria-current", "page");
+            if (active_link) {
+                active_link.classList.add("active");
+                active_link.setAttribute("aria-current", "page");
+            }
         });
     </script>
 

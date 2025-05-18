@@ -1,3 +1,4 @@
+import random
 
 from django.contrib import messages
 from django.core.files.storage import default_storage
@@ -5,6 +6,9 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models.fields.files import FieldFile
 from django.views.generic import FormView
 from django.views.generic.base import TemplateView
+
+from django.http import HttpResponseRedirect
+from django.shortcuts import render, redirect
 
 from .forms import ContactForm, ContactFormSet, FilesForm
 from .formulaires.materiel import MaterielForm
@@ -42,6 +46,34 @@ class DefaultFormsetView(GetParametersMixin, FormView):
 class NouveauMaterielView(GetParametersMixin, FormView):
     template_name = "inventaire/nouveau_materiel.html"
     form_class = MaterielForm
+
+def nouveau_materiel(request):
+
+    # if this is a POST request we need to process the form data
+    if request.method == "POST":
+        # create a form instance and populate it with data from the request:
+        form = MaterielForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            # process the data in form.cleaned_data as required
+            # ...
+            # l'enreigstrement du matériel a généré son ID, on va le
+            # passer à la vue indiquant que le matos a bien été pris en compte
+            # pour l'étiquetage
+            materiel_id = random.randint (680, 999)
+             
+            # redirect to a new URL:
+            return redirect('materiel_enregistre', materiel_id=materiel_id)
+            # return HttpResponseRedirect("enregistrement_materiel")
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form = MaterielForm()
+
+    return render(request, "inventaire/nouveau_materiel.html", {"form": form})
+
+class MaterielEnregistreView(TemplateView):
+    template_name = "inventaire/materiel_enregistre.html"
 
 """ class DefaultFormView(GetParametersMixin, FormView):
     template_name = "inventaire/form.html"
