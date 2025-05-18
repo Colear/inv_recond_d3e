@@ -17,7 +17,18 @@
                     <li class="nav-item"><a class="nav-link" href="{% url 'nouveau_materiel' %}">Nouveau matériel</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'form_by_field' %}">Sortie de matériel</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'form_horizontal' %}">Travailler sur...</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'form_inline' %}">Anomalies</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Anomalies
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">PCs non renseignés</a></li>
+                            <li><a class="dropdown-item" href="#">PCs en attente</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">Matériels non pesés</a></li>
+                            <li><a class="dropdown-item" href="#">Autres anomalies d'inventaire</a></li>
+                        </ul>
+                    </li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'form_with_files' %}">Rapports</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'misc' %}">Mon compte</a></li>
                 </ul>

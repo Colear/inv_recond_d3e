@@ -12,8 +12,10 @@
 
         {% bootstrap_form form layout="horizontal" %}
         
-        {% bootstrap_button button_type="submit" content="OK" %}
-        {% bootstrap_button button_type="reset" content="Cancel" %}
+        <div class="pt-4 text-center">
+            {% bootstrap_button button_type="submit" content="OK" %}
+            {% bootstrap_button button_type="reset" content="Cancel" %}
+        </div>
     </form>
 
     <script>
