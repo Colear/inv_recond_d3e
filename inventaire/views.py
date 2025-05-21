@@ -72,8 +72,38 @@ def nouveau_materiel(request):
 
     return render(request, "inventaire/nouveau_materiel.html", {"form": form})
 
+
+
+# ----- fin du processus d'enregistrement d'un nouveau matériel ----------
+
 class MaterielEnregistreView(TemplateView):
     template_name = "inventaire/materiel_enregistre.html"
+
+
+
+# ----- liste des PCs non renseignés ----------
+
+def pc_non_renseignes(request):
+
+    # c'est du maquettage, on commence par créer une liste bidon 
+    marques = ["Asus", "HP", "Dell", "Lenovo", "Sony", "Custom"]
+    modeles = ["X220", "Inspirion", "TUF", "Omen", "Victus"]
+    
+    liste = []
+    for _ in range(50):
+        liste.append([random.randint (680, 999), random.choice(marques), random.choice(modeles), round(random.uniform(0.5,12), 2)])
+    
+    # gestion de la pagination, on affiche 15 PC par page
+    paginator = Paginator(liste, 15)  
+    page_number = request.GET.get("page")
+    page_liste = paginator.get_page(page_number)
+
+    # on affiche la liste en passant le tableau en contexte
+    return render(request, "inventaire/pc_non_renseignes.html", {"page_liste": page_liste})
+
+
+
+# ----- suite ... ----------
 
 """ class DefaultFormView(GetParametersMixin, FormView):
     template_name = "inventaire/form.html"
