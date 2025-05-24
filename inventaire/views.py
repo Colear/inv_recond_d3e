@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 
 from .forms import ContactForm, ContactFormSet, FilesForm
-from .formulaires.materiel import MaterielForm
+from .formulaires.materiel import MaterielForm, PCForm
 
 
 # http://yuji.wordpress.com/2013/01/30/django-form-field-in-initial-data-requires-a-fieldfile-instance/
@@ -86,8 +86,8 @@ class MaterielEnregistreView(TemplateView):
 def pc_non_renseignes(request):
 
     # c'est du maquettage, on commence par créer une liste bidon 
-    marques = ["Asus", "HP", "Dell", "Lenovo", "Sony", "Custom"]
-    modeles = ["X220", "Inspirion", "TUF", "Omen", "Victus"]
+    marques = ["Asus", "HP", "Dell", "Lenovo", "Sony", "Custom", "Acer", "Samsung", "IBM"]
+    modeles = ["X220", "Inspirion", "TUF", "Omen", "Victus", "Pavilion", "S12", "A440", "Thinkpad"]
     
     liste = []
     for _ in range(50):
@@ -100,6 +100,14 @@ def pc_non_renseignes(request):
 
     # on affiche la liste en passant le tableau en contexte
     return render(request, "inventaire/pc_non_renseignes.html", {"page_liste": page_liste})
+
+
+
+# ----- détail d'un PC ----------
+
+class DetailsPcView(GetParametersMixin, FormView):
+    template_name = "inventaire/details_pc.html"
+    form_class= PCForm
 
 
 
