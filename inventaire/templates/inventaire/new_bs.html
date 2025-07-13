@@ -5,8 +5,16 @@
 {% get_current_language as LANGUAGE_CODE %}
 {% bootstrap_setting "color_mode" as COLOR_MODE %}
 
-<html>
+<html lang="{{ LANGUAGE_CODE|default:'fr_fr' }}"{% if COLOR_MODE %} data-bs-theme="{{ COLOR_MODE }}"{% endif %}>
 <head>
+
+    <!-- meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Page title -->
+    <title>{% block bootstrap5_title %}{% block title %}django-bootstrap5 template title{% endblock %}{% endblock %}</title>
+
     {% bootstrap_css %}
     {% bootstrap_javascript %}    
 </head>
