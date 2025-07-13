@@ -12,8 +12,8 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Accueil</a></li>
-                    <li class="nav-item dropdown">
+                    <li class="nav-item pe-4"><a class="nav-link" href="{% url 'home' %}">Accueil</a></li>
+                    <li class="nav-item dropdown pe-4">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> 
                             Matériel        
                         </a>
@@ -22,9 +22,9 @@
                             <li class="nav-item"><a class="nav-link" href="{% url 'sortie_materiel' %}">Sortie...</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'inventaire' %}">Inventaire</a></li>                  
-                    <li class="nav-item"><a class="nav-link" href="{% url 'reparer_et_configurer' %}">Travailler sur...</a></li>
-                    <li class="nav-item dropdown">
+                    <li class="nav-item pe-4"><a class="nav-link" href="{% url 'inventaire' %}">Inventaire</a></li>                  
+                    <li class="nav-item pe-4"><a class="nav-link" href="{% url 'reparer_et_configurer' %}">Travailler sur...</a></li>
+                    <li class="nav-item dropdown pe-4">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Rapports
                         </a>
@@ -34,6 +34,9 @@
                             <li><a class="dropdown-item" href="{% url 'etat_stock' %}">Etat du stock</a></li>
                         </ul>
                     </li>
+                    
+                </ul>
+                <ul class="navbar-nav">
                     <li class="nav-item"><a class="nav-link" href="{% url 'mon_compte' %}">Mon compte</a></li>
                 </ul>
             </div>
@@ -46,6 +49,7 @@
         {% block contenu %} CONTENU {% endblock %}
     </div>
 
+    <!-- Met en évidence la page en cours dans le menu -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             var active_link = document.querySelector("a[href='" + location.pathname + "']");
