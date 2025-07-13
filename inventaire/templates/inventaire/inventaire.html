@@ -3,7 +3,7 @@
 {% load django_bootstrap5 %}
 {% load static %}
 
-{% block title %}PC non renseignés{% endblock %}
+{% block title %}Inventaire{% endblock %}
 
 {% block contenu %}
     <br/>
@@ -29,6 +29,6 @@
         {% endfor %}
     </table>    
 
-    {% bootstrap_pagination page_liste url="pc_non_renseignes?page=1" size="lg" justify_content="center" %}
+    {% bootstrap_pagination page_liste url="inventaire?page=1" size="lg" justify_content="center" %}
 
 {% endblock %}

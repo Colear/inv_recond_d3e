@@ -43,9 +43,6 @@ class DefaultFormsetView(GetParametersMixin, FormView):
     template_name = "inventaire/formset.html"
     form_class = ContactFormSet
 
-class NouveauMaterielView(GetParametersMixin, FormView):
-    template_name = "inventaire/nouveau_materiel.html"
-    form_class = MaterielForm
 
 def nouveau_materiel(request):
 
@@ -61,7 +58,7 @@ def nouveau_materiel(request):
             # passer à la vue indiquant que le matos a bien été pris en compte
             # pour l'étiquetage
             materiel_id = random.randint (680, 999)
-             
+            
             # redirect to a new URL:
             return redirect('materiel_enregistre', materiel_id=materiel_id)
             # return HttpResponseRedirect("enregistrement_materiel")
@@ -73,6 +70,66 @@ def nouveau_materiel(request):
     return render(request, "inventaire/nouveau_materiel.html", {"form": form})
 
 
+class SortieMaterielView(TemplateView):
+    template_name = "inventaire/sortie_materiel.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        messages.info(self.request, "Sortie d'un matériel")
+        return context
+
+
+class InventaireView(TemplateView):
+    template_name = "inventaire/inventaire.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        messages.info(self.request, "Inventaire global")
+        return context
+
+
+class RepairConfigureView(TemplateView):
+    template_name = "inventaire/repair_configure.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        messages.info(self.request, "Travailler sur un PC")
+        return context
+
+
+class BilanAnnuelView(TemplateView):
+    template_name = "inventaire/bilan_annuel.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        messages.info(self.request, "Bilan annuel")
+        return context
+
+class BilanEcologicView(TemplateView):
+    template_name = "inventaire/bilan_ecologic.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        messages.info(self.request, "Bilan de la convention Ecologic")
+        return context
+
+class EtatStockView(TemplateView):
+    template_name = "inventaire/etat_stock.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        messages.info(self.request, "Etat du stock")
+        return context
+
+class MonCompteView(TemplateView):
+    template_name = "inventaire/mon_compte.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        messages.info(self.request, "Mon compte")
+        return context
+
+    
 
 # ----- fin du processus d'enregistrement d'un nouveau matériel ----------
 
@@ -83,7 +140,7 @@ class MaterielEnregistreView(TemplateView):
 
 # ----- liste des PCs non renseignés ----------
 
-def pc_non_renseignes(request):
+def inventaire(request):
 
     # c'est du maquettage, on commence par créer une liste bidon 
     marques = ["Asus", "HP", "Dell", "Lenovo", "Sony", "Custom", "Acer", "Samsung", "IBM"]
@@ -99,7 +156,7 @@ def pc_non_renseignes(request):
     page_liste = paginator.get_page(page_number)
 
     # on affiche la liste en passant le tableau en contexte
-    return render(request, "inventaire/pc_non_renseignes.html", {"page_liste": page_liste})
+    return render(request, "inventaire/inventaire.html", {"page_liste": page_liste})
 
 
 
