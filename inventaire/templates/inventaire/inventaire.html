@@ -1,15 +1,14 @@
 {% extends 'inventaire/parts/menu.html' %}
 
-{% load django_bootstrap5 %}
 {% load static %}
+{% load django_bootstrap5 %}
+{% load crispy_forms_tags %}
 
 {% block title %}Inventaire{% endblock %}
 
 {% block contenu %}
 
-    <form action="" method="get">
-        <input type="submit" />
-    </form>
+    {% crispy inventory_filters inventory_filters.helper %}
 
     <br/>
     <table class="table">

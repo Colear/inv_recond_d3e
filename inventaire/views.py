@@ -12,6 +12,8 @@ from django.shortcuts import render, redirect
 
 from .forms import ContactForm, ContactFormSet, FilesForm
 from .formulaires.materiel import MaterielForm, PCForm
+from .formulaires.filters import InventoryFilters
+
 
 
 # http://yuji.wordpress.com/2013/01/30/django-form-field-in-initial-data-requires-a-fieldfile-instance/
@@ -150,13 +152,16 @@ def inventaire(request):
     for _ in range(50):
         liste.append([random.randint (680, 999), random.choice(marques), random.choice(modeles), round(random.uniform(0.5,12), 2)])
     
+    # formulaire de filtres
+    inventory_filters = InventoryFilters()
+
     # gestion de la pagination, on affiche 15 PC par page
     paginator = Paginator(liste, 15)  
     page_number = request.GET.get("page")
     page_liste = paginator.get_page(page_number)
 
     # on affiche la liste en passant le tableau en contexte
-    return render(request, "inventaire/inventaire.html", {"page_liste": page_liste})
+    return render(request, "inventaire/inventaire.html", {"page_liste": page_liste, "inventory_filters": inventory_filters})
 
 
 
