@@ -7,3 +7,10 @@ __pycache__/
 
 # Ignorer le paramétrage de VSCode
 .vscode
+
+# Ignorer l'environnement virtuel Python
+bin/
+lib/
+# lib64 est un lien symbolique sur lib
+lib64
+pyvenv.cfg
