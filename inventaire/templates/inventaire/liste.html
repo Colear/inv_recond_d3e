@@ -1,34 +1,46 @@
-<table>
-    <thead>
-        <tr>
-            <th>Type</th>
-            <th>Modèle</th>
-            <th>N° Série</th>
-            <th>Statut</th>
-            <th>Spécificités</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for m in materiaux %}
-        <tr>
-            <td>{{ m.get_type_display }}</td>
-            <td>
-                {% if m.ecran %}
-                    {{ m.ecran.marque }} {{ m.ecran.modele }}
-                {% elif m.ordinateur %}
-                    {{ m.ordinateur.marque }} {{ m.ordinateur.modele }}
-                {% endif %}
-            </td>
-            <td>{{ m.numero_inventaire }}</td>
-            <td>{{ m.get_statut_display }}</td>
-            <td>
-                {% if m.ecran %}
-                    {{ m.ecran.diagonale_pouces }}" - {{ m.ecran.resolution }}
-                {% elif m.ordinateur %}
-                    {{ m.ordinateur.cpu }} - {{ m.ordinateur.ram_go }}Go RAM
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% extends 'inventaire/parts/menu.html' %}
+
+{% load static %}
+{% load django_bootstrap5 %}
+{% load crispy_forms_tags %}
+
+{% block title %}Liste{% endblock %}
+
+{% block contenu %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Modèle</th>
+                <th>N° Série</th>
+                <th>Statut</th>
+                <th>Spécificités</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in materiaux %}
+            <tr>
+                <td>{{ m.get_type_display }}</td>
+                <td>
+                    {% if m.ecran %}
+                        {{ m.ecran.marque }} {{ m.ecran.modele }}
+                    {% elif m.ordinateur %}
+                        {{ m.ordinateur.marque }} {{ m.ordinateur.modele }}
+                    {% endif %}
+                </td>
+                <td>{{ m.numero_inventaire }}</td>
+                <td>{{ m.get_statut_display }}</td>
+                <td>
+                    {% if m.ecran %}
+                        {{ m.ecran.diagonale_pouces }}" - {{ m.ecran.resolution }}
+                    {% elif m.ordinateur %}
+                        {{ m.ordinateur.cpu }} - {{ m.ordinateur.ram_go }}Go RAM
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}
