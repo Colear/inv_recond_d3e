@@ -8,12 +8,15 @@ from django.views.generic import FormView
 from django.views.generic.base import TemplateView
 
 from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+
 
 from .forms import ContactForm, ContactFormSet, FilesForm
 from .formulaires.materiel import MaterielForm, PCForm
 from .formulaires.filters import InventoryFilters
 
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Materiel, Ecran, Ordinateur
+from .formulaires.materiel_v2 import EcranForm, OrdinateurForm
 
 
 # http://yuji.wordpress.com/2013/01/30/django-form-field-in-initial-data-requires-a-fieldfile-instance/
@@ -171,6 +174,56 @@ class DetailsPcView(GetParametersMixin, FormView):
     template_name = "inventaire/details_pc.html"
     form_class= PCForm
 
+
+
+
+def choix_type_ajout(request):
+    """Page intermédiaire pour choisir le type de matériel à ajouter"""
+    return render(request, 'inventaire/choix_type.html')
+
+def ajouter_materiel(request, type_materiel):
+    if type_materiel == 'ecran':
+        model_class = Ecran
+        form_class = EcranForm
+        template = 'inventaire/form_ecran.html'
+    elif type_materiel == 'ordinateur':
+        model_class = Ordinateur
+        form_class = OrdinateurForm
+        template = 'inventaire/form_ordinateur.html'
+    else:
+        return redirect('choix_type_ajout')
+
+    if request.method == 'POST':
+        form = form_class(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_stock') # À créer
+    else:
+        form = form_class()
+
+    return render(request, template, {'form': form, 'type': type_materiel})
+
+def liste_stock(request):
+    """Affiche tout le matériel avec un accès facile aux détails"""
+    materiels = Materiel.objects.all().select_related('ecran', 'ordinateur')
+    return render(request, 'inventaire/liste.html', {'materiaux': materiels})
+
+def detail_materiel(request, pk):
+    """Affiche les détails complets selon le type"""
+    materiel = get_object_or_404(Materiel.objects.select_related('ecran', 'ordinateur'), pk=pk)
+    
+    contexte = {'materiel': materiel}
+    
+    if hasattr(materiel, 'ecran'):
+        contexte['details'] = materiel.ecran
+        contexte['type_template'] = 'inventaire/detail_ecran.html'
+    elif hasattr(materiel, 'ordinateur'):
+        contexte['details'] = materiel.ordinateur
+        contexte['type_template'] = 'inventaire/detail_pc.html'
+    else:
+        contexte['type_template'] = 'inventaire/detail_generique.html'
+        
+    return render(request, 'inventaire/detail.html', contexte)
 
 
 # ----- suite ... ----------

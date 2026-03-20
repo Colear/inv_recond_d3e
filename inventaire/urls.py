@@ -19,6 +19,10 @@ from .views import (
     EtatStockView,
     MonCompteView,
     DetailsPcView,
+    liste_stock,
+    choix_type_ajout,
+    ajouter_materiel,
+    detail_materiel,
 )
 
 urlpatterns = [
@@ -40,4 +44,22 @@ urlpatterns = [
     path("form_with_files", FormWithFilesView.as_view(), name="form_with_files"),
     path("pagination", PaginationView.as_view(), name="pagination"),
     path("misc", MiscView.as_view(), name="misc"),
+
+    # Page d'accueil du stock (liste globale)
+    path('liste', liste_stock, name='liste_stock'),
+    
+    # Page intermédiaire pour choisir le type de matériel à ajouter
+    path('ajouter/choix/', choix_type_ajout, name='choix_type_ajout'),
+    
+    # Vues d'ajout dynamiques selon le type
+    # L'URL sera : /ajouter/ecran/ ou /ajouter/ordinateur/
+    path('ajouter/<str:type_materiel>/', ajouter_materiel, name='ajouter_materiel'),
+    
+    # Détail d'un matériel spécifique
+    # L'URL sera : /detail/1/ (où 1 est l'ID du matériel)
+    path('detail/<int:pk>/', detail_materiel, name='detail_materiel'),
+    
+    # (Optionnel) URL pour l'assignation si vous la créez plus tard
+    # path('<int:pk>/assigner/', assigner_materiel, name='assigner_materiel'),
 ]
+
