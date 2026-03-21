@@ -23,6 +23,8 @@ from .views import (
     choix_type_ajout,
     ajouter_materiel,
     detail_materiel,
+    ajouter_materiel_unifie,
+    ajax_create_marque,
 )
 
 urlpatterns = [
@@ -54,6 +56,12 @@ urlpatterns = [
     # Vues d'ajout dynamiques selon le type
     # L'URL sera : /ajouter/ecran/ ou /ajouter/ordinateur/
     path('ajouter/<str:type_materiel>/', ajouter_materiel, name='ajouter_materiel'),
+
+    # Vue dynamique d'ajout de matériel
+    path('ajouter_materiel', ajouter_materiel_unifie, name='ajouter_materiel_unifie'),
+
+    # Nouvelle route pour l'AJAX
+    path('ajax/create-marque/', ajax_create_marque, name='ajax_create_marque'),
     
     # Détail d'un matériel spécifique
     # L'URL sera : /detail/1/ (où 1 est l'ID du matériel)

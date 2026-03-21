@@ -1,7 +1,6 @@
 from django import forms
-from ..models import Ecran, Ordinateur, Materiel
+from ..models import Ecran, Ordinateur, Materiel, Marque
 
-''' A virer
 class MaterielBaseForm(forms.ModelForm):
     class Meta:
         model = Materiel
@@ -9,16 +8,24 @@ class MaterielBaseForm(forms.ModelForm):
         widgets = {
             'date_achat': forms.DateInput(attrs={'type': 'date'}),
         }
-'''
-        
-class TypeChoiceForm(forms.Form):
-    TYPE_CHOICES = [
-        ('', '--- Sélectionnez un type ---'),
-        ('ecran', 'Écran'),
-        ('ordinateur', 'Ordinateur'),
-    ]
-    type_materiel = forms.ChoiceField(choices=TYPE_CHOICES, label="Type de matériel")
 
+class EcranForm(MaterielBaseForm):
+    class Meta:
+        model = Ecran
+        # On liste TOUS les champs SAUF 'marque'
+        fields = [
+            'modele', 'diagonale_pouces', 'resolution', 'connectique'
+        ]
+
+class OrdinateurForm(MaterielBaseForm):
+    class Meta:
+        model = Ordinateur
+        # On liste TOUS les champs SAUF 'marque'
+        fields = [
+            'modele', 'cpu', 'ram_go', 'stockage_go', 'type_stockage', 'systeme_exploitation'
+        ]
+
+'''
 class EcranForm(MaterielBaseForm):
     class Meta(MaterielBaseForm.Meta):
         model = Ecran
@@ -28,4 +35,14 @@ class OrdinateurForm(MaterielBaseForm):
     class Meta(MaterielBaseForm.Meta):
         model = Ordinateur
         fields = MaterielBaseForm.Meta.fields + ['marque', 'modele', 'cpu', 'ram_go', 'stockage_go', 'type_stockage', 'systeme_exploitation']
+'''
 
+class MarqueForm(forms.ModelForm):
+    class Meta:
+        model = Marque
+        fields = ['marque', 'site_web']
+        # On peut rendre le site web optionnel même si le modèle l'autorise déjà
+        widgets = {
+            'marque': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Dell, HP, Apple...'}),
+            'site_web': forms.URLInput(attrs={'class': 'form-control', 'placeholder': ''}),
+        }

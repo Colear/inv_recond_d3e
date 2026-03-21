@@ -14,9 +14,13 @@ from .forms import ContactForm, ContactFormSet, FilesForm
 from .formulaires.materiel import MaterielForm, PCForm
 from .formulaires.filters import InventoryFilters
 
+# pour la v2
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Materiel, Ecran, Ordinateur
-from .formulaires.materiel_v2 import EcranForm, OrdinateurForm
+from .models import Materiel, Ecran, Ordinateur, Marque
+from .formulaires.materiel_v2 import EcranForm, OrdinateurForm, MarqueForm
 
 
 # http://yuji.wordpress.com/2013/01/30/django-form-field-in-initial-data-requires-a-fieldfile-instance/
@@ -176,6 +180,81 @@ class DetailsPcView(GetParametersMixin, FormView):
 
 
 
+'''============================================================================
+    Vues v2
+============================================================================'''
+
+def ajouter_materiel_unifie(request):
+    type_materiel = request.GET.get('type') or request.POST.get('type_materiel')
+    form = None
+    marques = Marque.objects.all() # 1. Récupérer toutes les marques pour le selecteur
+
+    if request.method == 'POST':
+        marque_id = request.POST.get('marque') # Récupération manuelle
+
+        # DEBUG : Affichez ce que Django reçoit dans le terminal
+        print(f"--- DEBUG POST DATA ---")
+        print(f"TOUT LE POST: {request.POST}")
+        print(f"VALEUR DE 'marque': '{marque_id}'")
+        print(f"TYPE: {type(marque_id)}")
+        print(f"-----------------------")
+        
+        if not marque_id:
+            # Si pas de marque sélectionnée, on force une erreur
+            if type_materiel == 'ecran':
+                form = EcranForm(request.POST)
+                form.add_error(None, "Veuillez sélectionner une marque.")
+            elif type_materiel == 'ordinateur':
+                form = OrdinateurForm(request.POST)
+                form.add_error(None, "Veuillez sélectionner une marque.")
+        else:
+            # Marque présente, on valide le reste
+            if type_materiel == 'ecran':
+                form = EcranForm(request.POST)
+                if form.is_valid():
+                    instance = form.save(commit=False) # 2. Ne pas sauver tout de suite
+                    instance.marque_id = marque_id     # 3. Assigner la marque manuellement
+                    instance.save()                    # 4. Sauvegarder
+                    return redirect('liste_stock')
+                    
+            elif type_materiel == 'ordinateur':
+                form = OrdinateurForm(request.POST)
+                if form.is_valid():
+                    instance = form.save(commit=False)
+                    instance.marque_id = marque_id
+                    instance.save()
+                    return redirect('liste_stock')
+
+    elif request.method == 'GET' and type_materiel:
+        if type_materiel == 'ecran':
+            form = EcranForm()
+        elif type_materiel == 'ordinateur':
+            form = OrdinateurForm()
+            
+    return render(request, 'inventaire/form_dynamique.html', {
+        'form': form, 
+        'type_materiel': type_materiel,
+        'marques': marques # 5. Passer les marques au template
+    })
+    
+
+@require_POST
+def ajax_create_marque(request):
+    form = MarqueForm(request.POST) # MarqueForm doit avoir un champ 'marque'
+    if form.is_valid():
+        instance = form.save()
+        return JsonResponse({
+            'success': True,
+            'id': instance.id,
+            'nom': str(instance), # Utilise __str__ qui devrait retourner instance.marque
+            # Ou explicitement : 'nom': instance.marque
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'errors': form.errors # Renvoiera {'marque': ['...']}
+        })
+
 
 def choix_type_ajout(request):
     """Page intermédiaire pour choisir le type de matériel à ajouter"""
@@ -224,6 +303,11 @@ def detail_materiel(request, pk):
         contexte['type_template'] = 'inventaire/detail_generique.html'
         
     return render(request, 'inventaire/detail.html', contexte)
+
+'''============================================================================
+    END Vues v2
+============================================================================'''
+
 
 
 # ----- suite ... ----------
