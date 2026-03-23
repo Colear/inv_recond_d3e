@@ -10,7 +10,7 @@ from django.views.generic.base import TemplateView
 from django.http import HttpResponseRedirect
 
 
-from .forms import ContactForm, ContactFormSet, FilesForm
+# from .forms import ContactForm, ContactFormSet, FilesForm
 from .formulaires.materiel import MaterielForm, PCForm
 from .formulaires.filters import InventoryFilters
 
@@ -48,10 +48,10 @@ class GetParametersMixin:
         return context
 
 
-class DefaultFormsetView(GetParametersMixin, FormView):
+""" class DefaultFormsetView(GetParametersMixin, FormView):
     template_name = "inventaire/formset.html"
     form_class = ContactFormSet
-
+ """
 
 def nouveau_materiel(request):
 
@@ -317,28 +317,28 @@ def detail_materiel(request, pk):
     form_class = ContactForm
  """
 
-class DefaultFormByFieldView(GetParametersMixin, FormView):
+""" class DefaultFormByFieldView(GetParametersMixin, FormView):
     template_name = "inventaire/form_by_field.html"
     form_class = ContactForm
+ """
 
-
-class FormHorizontalView(GetParametersMixin, FormView):
+""" class FormHorizontalView(GetParametersMixin, FormView):
     template_name = "inventaire/form_horizontal.html"
-    form_class = ContactForm
+    form_class = ContactForm """
 
 
-class FormInlineView(GetParametersMixin, FormView):
+""" class FormInlineView(GetParametersMixin, FormView):
     template_name = "inventaire/form_inline.html"
-    form_class = ContactForm
+    form_class = ContactForm """
 
 
-class FormWithFilesView(GetParametersMixin, FormView):
+""" class FormWithFilesView(GetParametersMixin, FormView):
     template_name = "inventaire/form_with_files.html"
     form_class = FilesForm
 
     def get_initial(self):
         return {"file4": fieldfile}
-
+ """
 
 class PaginationView(TemplateView):
     template_name = "inventaire/pagination.html"
