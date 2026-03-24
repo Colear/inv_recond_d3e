@@ -13,19 +13,14 @@ from .models import (
 )
 
 
-# -----------------------------------------------------------------------------
-# 1. MARQUES
-# -----------------------------------------------------------------------------
-@admin.register(Marque)
-class MarqueAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'site_web')
-    search_fields = ('nom',)
-    ordering = ('nom',)
 
+"""====== Benevole ============================================================
+Extension de la partie utilisateur de Django pour y ajouter des données
+sur les bénévoles.
+On utilise dans l'admin un formulaire spécifique pour pouvoir utiliser les
+cases à cocher des spécialités.
+============================================================================""" 
 
-# -----------------------------------------------------------------------------
-# FORMULAIRE PERSONNALISÉ POUR BÉNÉVOLE
-# -----------------------------------------------------------------------------
 class BenevoleForm(forms.ModelForm):
     class Meta:
         model = Benevole
@@ -35,9 +30,6 @@ class BenevoleForm(forms.ModelForm):
             'specialites': forms.CheckboxSelectMultiple(choices=Benevole.SPECIALITE_CHOICES),
         }
 
-# -----------------------------------------------------------------------------
-# ADMIN BÉNÉVOLE
-# -----------------------------------------------------------------------------
 @admin.register(Benevole)
 class BenevoleAdmin(admin.ModelAdmin):
     form = BenevoleForm  # <--- On assigne explicitement le formulaire personnalisé
@@ -55,9 +47,10 @@ class BenevoleAdmin(admin.ModelAdmin):
     get_specialites_display.short_description = "Spécialités"
 
 
-# -----------------------------------------------------------------------------
-# BÉNÉFICIAIRES
-# -----------------------------------------------------------------------------
+
+"""====== Beneficiaire ========================================================
+Information sur les bénéficiaires de don.
+============================================================================""" 
 
 @admin.register(Beneficiaire)
 class BeneficiaireAdmin(admin.ModelAdmin):
@@ -65,9 +58,22 @@ class BeneficiaireAdmin(admin.ModelAdmin):
     search_fields = ('nom', 'prenom', 'email')
     list_filter = ('date_creation',)
 
-# -----------------------------------------------------------------------------
-# 3. INTERVENTIONS (Journal)
-# -----------------------------------------------------------------------------
+
+
+"""====== Intervention ========================================================
+Notes de travail et de prise en charge par les bénévoles. Plus de papier !
+La class Inline permet l'ajout en ligne directement dans les ordis.
+============================================================================""" 
+
+class InterventionInline(admin.StackedInline):
+    model = Intervention
+    extra = 0
+    fields = ('date_heure', 'benevole', 'type_action', 'commentaire')
+    readonly_fields = ('date_heure', 'benevole')
+    verbose_name = "Journal d'interventions"
+    verbose_name_plural = "Journal d'interventions"
+    classes = ('collapse',)
+
 @admin.register(Intervention)
 class InterventionAdmin(admin.ModelAdmin):
     list_display = ('date_heure', 'materiel', 'benevole', 'type_action', 'commentaire_court')
@@ -79,9 +85,27 @@ class InterventionAdmin(admin.ModelAdmin):
         return (obj.commentaire[:50] + '...') if len(obj.commentaire) > 50 else obj.commentaire
     commentaire_court.short_description = "Commentaire"
 
-# -----------------------------------------------------------------------------
-# 4. DISQUES DURS
-# -----------------------------------------------------------------------------
+
+
+"""====== Marque ==============================================================
+Table externe qui sera utilisé quelque soit le type de matériel pour choisir
+la marque du matériel saisi.
+============================================================================"""
+
+@admin.register(Marque)
+class MarqueAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'site_web')
+    search_fields = ('nom',)
+    ordering = ('nom',)
+
+
+
+"""====== DisqueDur ===========================================================
+Permet de stocker les disques durs, avec éventuellement un numéro 
+d'inventaire quand ils sont testés en remis en stock.
+La class Inline permet l'ajout en ligne directement dans les ordis.
+============================================================================"""
+
 class DisqueDurInline(admin.TabularInline):
     model = DisqueDur
     extra = 1
@@ -109,17 +133,11 @@ class DisqueDurAdmin(admin.ModelAdmin):
         self.message_user(request, f"{queryset.count()} disques marqués comme sains et effacés.")
     marquer_comme_sain_efface.short_description = "Marquer comme sain et effacé (Prêt stock)"
 
-# -----------------------------------------------------------------------------
-# 5. ORDINATEURS
-# -----------------------------------------------------------------------------
-class InterventionInline(admin.StackedInline):
-    model = Intervention
-    extra = 0
-    fields = ('date_heure', 'benevole', 'type_action', 'commentaire')
-    readonly_fields = ('date_heure', 'benevole')
-    verbose_name = "Journal d'interventions"
-    verbose_name_plural = "Journal d'interventions"
-    classes = ('collapse',)
+
+
+"""====== Ordinateur ==========================================================
+    Classe fille de Materiel destinée aux ordis.
+============================================================================""" 
 
 @admin.register(Ordinateur)
 class OrdinateurAdmin(admin.ModelAdmin):
@@ -171,9 +189,10 @@ class OrdinateurAdmin(admin.ModelAdmin):
 
 
 
-# -----------------------------------------------------------------------------
-# 6. ÉCRANS
-# -----------------------------------------------------------------------------
+"""====== Ecran ===============================================================
+    Classe fille de Materiel destinée aux écrans.
+============================================================================"""
+
 @admin.register(Ecran)
 class EcranAdmin(admin.ModelAdmin):
     list_display = ('numero_inventaire', 'marque', 'modele', 'diagonale_pouces', 'statut', 'poids_entree_kg')
@@ -189,9 +208,12 @@ class EcranAdmin(admin.ModelAdmin):
         ('Sortie', {'fields': ('beneficiaire', 'organisme_recyclage', 'poids_sortie_kg', 'date_sortie')}),
     )
 
-# -----------------------------------------------------------------------------
-# 7. PÉRIPHÉRIQUES
-# -----------------------------------------------------------------------------
+
+
+"""====== Peripherique ========================================================
+    Classe fille de Materiel destinée aux periphériques (clavier, ...).
+============================================================================"""
+
 @admin.register(Peripherique)
 class PeripheriqueAdmin(admin.ModelAdmin):
     list_display = ('numero_inventaire', 'type_periph', 'marque', 'avec_cable', 'statut', 'poids_entree_kg')
@@ -206,3 +228,4 @@ class PeripheriqueAdmin(admin.ModelAdmin):
         ('Flux & Poids', {'fields': ('date_entree', 'poids_entree_kg', 'provenance', 'benevole_en_charge')}),
         ('Sortie', {'fields': ('beneficiaire', 'organisme_recyclage', 'poids_sortie_kg', 'date_sortie')}),
     )
+
