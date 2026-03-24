@@ -55,7 +55,7 @@ Ces règles sont codées en dur dans l'application (models.py et views.py) et so
 ## 📂 Structure du Projet
 
 ```plain text
-mon_projet/
+inv_recond_d3e/
 ├── manage.py
 ├── README.md                # Ce fichier
 ├── docs/                    # Documentation complémentaire (procédures, etc.)
@@ -69,7 +69,7 @@ mon_projet/
 │   │   ├── home.html        # Tableau de bord
 │   │   └── inventaire/      # Vues listes et détails
 │   └── migrations/          # Historique des changements de BDD
-└── mon_projet/              # Configuration du projet Django
+└── site_inv_recond_d3e/     # Configuration du projet Django
     ├── settings.py
     └── urls.py
 ```
@@ -87,8 +87,8 @@ Pour ceux souhaitant participer au code...
 
 ```bash
 # Cloner le projet
-git clone https://github.com/votre-org/inv_recond.git
-cd inv_recond
+git clone https://github.com/Colear/inv_recond_d3e
+cd inv_recond_d3e
 
 # Créer un environnement virtuel
 python -m venv venv
@@ -121,9 +121,9 @@ python manage.py runserver
 
 Pour les guides pas-à-pas destinés aux utilisateurs (ex: "Comment enregistrer une entrée ?", "Comment tester un disque dur ?"), veuillez consulter le dossier docs/.
 
-    docs/ENTREE_MATERIEL.md : Procédure de pesée et d'enregistrement.
-    docs/DIAGNOSTIC_CPU.md : Comment trouver et saisir le score CPU.
-    docs/CONFIGURATION_LINUX.md : Checklist des logiciels à installer (OnlyOffice, GIMP, etc.).
+    docs/entree_materiel.md : Procédure de pesée et d'enregistrement.
+    docs/diagnostic_cpu.md : Comment trouver et saisir le score CPU.
+    docs/configuration_linux.md : Checklist des logiciels à installer (OnlyOffice, GIMP, etc.).
 
 ## 🤝 Contribuer
 

@@ -1,0 +1,3 @@
+# Diagnostic CPU
+
+[A ECRIRE]
