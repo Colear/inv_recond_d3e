@@ -1,10 +1,133 @@
+<!-- inventaire/templates/inventaire/home.html -->
 {% extends 'inventaire/parts/menu.html' %}
-
 {% load static %}
 {% load django_bootstrap5 %}
 
+{% block title %}
+    Tableau de Bord - Atelier Reconditionnement
+{% endblock %}
 
 {% block contenu %}
-    {% block title %}Inventaire{% endblock %}
-    Application d'inventaire pour l'atelier de reconditionnement numérique
+
+    <!-- Message de bienvenue (affiché grâce aux messages Django) -->
+    {% if messages %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    <!-- SECTION 1: CARTES STATISTIQUES -->
+    <div class="row g-4 mb-5 mt-2">
+        <!-- Carte : En Attente de Diagnostic (Action requise) -->
+        <div class="col-md-3">
+            <div class="card text-white bg-warning shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">À Diagnostiquer</h5>
+                    <p class="display-4 fw-bold">{{ stats_ordis.en_attente }}</p>
+                    <p class="card-text small">Ordinateurs en attente</p>
+                    <a href="{% url 'inventaire' %}?statut=ENTREE" class="btn btn-sm btn-light text-warning fw-bold">Voir la liste</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte : En Réparation (En cours) -->
+        <div class="col-md-3">
+            <div class="card text-white bg-primary shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">En Réparation</h5>
+                    <p class="display-4 fw-bold">{{ stats_ordis.en_reparation }}</p>
+                    <p class="card-text small">PC en cours de travail</p>
+                    <a href="{% url 'inventaire' %}?statut=REPARATION" class="btn btn-sm btn-light text-primary fw-bold">Voir la liste</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte : Prêts à Donner (Succès) -->
+        <div class="col-md-3">
+            <div class="card text-white bg-success shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Prêts à Donner</h5>
+                    <p class="display-4 fw-bold">{{ stats_ordis.pret_a_don }}</p>
+                    <p class="card-text small">Configurés et testés</p>
+                    <a href="{% url 'inventaire' %}?statut=PRET_A_DON" class="btn btn-sm btn-light text-success fw-bold">Voir la liste</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte : Poids du Mois (Écologie) -->
+        <div class="col-md-3">
+            <div class="card text-dark bg-info-subtle border-info shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info-emphasis">Poids Entré (Mois)</h5>
+                    <p class="display-4 fw-bold text-info-emphasis">{{ poids_mois|floatformat:1 }} <span class="fs-5">kg</span></p>
+                    <p class="card-text small">Depuis le 01/{{ date_du_jour|slice:"3:5" }}</p>
+                    <span class="badge bg-info">Convention Recyclage</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION 2: DERNIERS MATÉRIELS AJOUTÉS -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+            <span>📥 Derniers matériels entrés</span>
+            <a href="{% url 'inventaire' %}" class="btn btn-sm btn-outline-primary">Voir tout l'inventaire</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Inventaire</th>
+                            <th>Type</th>
+                            <th>Marque / Modèle</th>
+                            <th>Date Entrée</th>
+                            <th>Poids</th>
+                            <th>Statut</th>
+                            <th>Bénévole</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for materiel in derniers_materiaux %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ materiel.numero_inventaire }}</td>
+                            <td>
+                                {% if materiel.type_materiel == 'PC' %}🖥️
+                                {% elif materiel.type_materiel == 'ECRAN' %}🖼️
+                                {% else %}🖱️{% endif %}
+                                {{ materiel.get_type_materiel_display }}
+                            </td>
+                            <td>
+                                {{ materiel.marque|default:"Inconnue" }} {{ materiel.modele|truncatechars:20 }}
+                            </td>
+                            <td>{{ materiel.date_entree|date:"d/m/Y" }}</td>
+                            <td>{{ materiel.poids_entree_kg|floatformat:2 }} kg</td>
+                            <td>
+                                {% if materiel.statut == 'ENTREE' %}<span class="badge bg-warning text-dark">Entrée</span>
+                                {% elif materiel.statut == 'DONNE' %}<span class="badge bg-success">Donné</span>
+                                {% else %}<span class="badge bg-secondary">{{ materiel.get_statut_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if materiel.benevole_en_charge %}
+                                    <small>{{ materiel.benevole_en_charge.get_full_name|default:materiel.benevole_en_charge.username }}</small>
+                                {% else %}
+                                    <span class="text-muted fst-italic">Non assigné</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">Aucun matériel dans l'inventaire pour le moment.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 {% endblock %}

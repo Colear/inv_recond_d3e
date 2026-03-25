@@ -184,17 +184,14 @@ class Materiel(models.Model):
         return f"{self.numero_inventaire} - {self.get_type_materiel_display()} ({self.marque} {self.modele})"
 
     # Surcharge de la fonction de sauvegarde avec :
-    #   - génération du numéro d'inventaire si non présent
     #   - si passage en DONNE ou RECYCLAGE :
     #     - renseignement auto de la date de sortie à la date du jour si info non fournie
     #     - renseignement auto du poid de sortie égal à poid d'entrée si non fourni
     def save(self, *args, **kwargs):
-        if not self.numero_inventaire:
-            self.numero_inventaire = self.generer_numero_inventaire()
         if self.statut in ['DONNE', 'RECYCLAGE'] and not self.date_sortie:
             self.date_sortie = timezone.now()
             if not self.poids_sortie_kg:
-                self.poids_sortie_kg = self.poids_entree_kg
+                self.poids_sortie_kg = self.poids_entree_kg            
         super().save(*args, **kwargs)
 
     # Génération du numéro d'inventaire
@@ -229,6 +226,11 @@ class Ecran(Materiel):
     resolution = models.CharField(max_length=20, blank=True)
     connectique = models.CharField(max_length=100, blank=True)
 
+    # On force le type pour éviter les problèmes d'héritage (valeur par défaut dans la classe parente)
+    def save(self, *args, **kwargs):
+        self.type_materiel = 'ECRAN'
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = "Écran"
         verbose_name_plural = "Écrans"
@@ -249,6 +251,11 @@ class Peripherique(Materiel):
     type_periph = models.CharField(max_length=20, choices=TYPE_PERIPH_CHOICES, default='AUTRE')
     connectique = models.CharField(max_length=50, blank=True)
     avec_cable = models.BooleanField(default=True)
+
+    # On force le type pour éviter les problèmes d'héritage (valeur par défaut dans la classe parente)
+    def save(self, *args, **kwargs):
+        self.type_materiel = 'PERIPH'
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Périphérique"
@@ -342,6 +349,11 @@ class Ordinateur(Materiel):
     # Réparation
     pieces_changees = models.TextField(blank=True)
     cout_reparation = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+
+    # On force le type pour éviter les problèmes d'héritage (valeur par défaut dans la classe parente)
+    def save(self, *args, **kwargs):
+        self.type_materiel = 'PC'
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Ordinateur"

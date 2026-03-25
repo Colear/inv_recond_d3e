@@ -1,36 +1,176 @@
 {% extends 'inventaire/parts/menu.html' %}
-
 {% load django_bootstrap5 %}
-{% load static %}
 
-{% block title %}Nouveau matériel{% endblock %}
+{% block title %}Nouveau Matériel (Entrée Rapide){% endblock %}
 
 {% block contenu %}
-    <br/>
-    <form method="post" class="form-horizontal">
-        {% csrf_token %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">📥 Enregistrement Rapide (Entrée)</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    Saisissez uniquement les informations essentielles. Le diagnostic technique (CPU, RAM, etc.) sera réalisé plus tard par un bénévole spécialisé.
+                </p>
 
-        {% bootstrap_form form layout="horizontal" %}
-        
-        <div class="pt-4 text-center">
-            {% bootstrap_button button_type="submit" content="OK" %}
-            {% bootstrap_button button_type="reset" content="Cancel" %}
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Date (Automatique, affichée pour info) -->
+                    <div class="alert alert-info d-flex justify-content-between align-items-center">
+                        <span><strong>Date d'entrée :</strong> Aujourd'hui</span>
+                        <small class="text-muted">Définie automatiquement</small>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <!-- Ligne 1 : Type et Poids -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.type_materiel.id_for_label }}" class="form-label">Type de matériel *</label>
+                            {{ form.type_materiel }}
+                            {% if form.type_materiel.errors %}<div class="text-danger small">{{ form.type_materiel.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.poids_entree_kg.id_for_label }}" class="form-label">Poids (kg) *</label>
+                            {{ form.poids_entree_kg }}
+                            {% if form.poids_entree_kg.errors %}<div class="text-danger small">{{ form.poids_entree_kg.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Ligne 2 : Provenance et Marque -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.provenance.id_for_label }}" class="form-label">Provenance *</label>
+                            {{ form.provenance }}
+                            {% if form.provenance.errors %}<div class="text-danger small">{{ form.provenance.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.marque.id_for_label }}" class="form-label">Marque</label>
+                            <div class="input-group">
+                                {{ form.marque }}
+                                <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#modalMarque">
+                                    +
+                                </button>
+                            </div>
+                            {% if form.marque.errors %}<div class="text-danger small">{{ form.marque.errors }}</div>{% endif %}
+                            <small class="text-muted">Laisser vide si inconnue.</small>
+                        </div>
+                    </div>
+
+                    <!-- Ligne 3 : Modèle (Optionnel) -->
+                    <div class="mb-3">
+                        <label for="{{ form.modele.id_for_label }}" class="form-label">Modèle (Optionnel)</label>
+                        {{ form.modele }}
+                    </div>
+
+                    <!-- SECTION DYNAMIQUE : CATÉGORIE PC -->
+                    <div id="section_categorie_pc" class="mb-3 p-3 bg-light rounded border" style="display:none;">
+                        <label for="{{ form.categorie_pc.id_for_label }}" class="form-label fw-bold">Catégorie du PC *</label>
+                        {{ form.categorie_pc }}
+                        {% if form.categorie_pc.errors %}<div class="text-danger small">{{ form.categorie_pc.errors }}</div>{% endif %}
+                    </div>
+
+                    <!-- SECTION DYNAMIQUE : CATÉGORIE PÉRIPH -->
+                    <div id="section_categorie_periph" class="mb-3 p-3 bg-light rounded border" style="display:none;">
+                        <label for="{{ form.categorie_periph.id_for_label }}" class="form-label fw-bold">Type de périphérique *</label>
+                        {{ form.categorie_periph }}
+                        {% if form.categorie_periph.errors %}<div class="text-danger small">{{ form.categorie_periph.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'inventaire' %}" class="btn btn-outline-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-success px-4">✅ Enregistrer l'entrée</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </form>
+    </div>
+</div>
 
-    <script>
-        /* ajoute un listener sur le select de provenance qui permet
-           d'activer le champ nom s'il s'agit d'un don, et de le
-           désactiver dans le cas contraire                             */
-        var orig = document.querySelector("[name='provenance']");
-        orig.addEventListener('change', function () {
-            var nom = document.querySelector("[name='donateur']");
-            if (this.value.indexOf("don_") === 0) {
-                nom.disabled = false;
-            } else {
-                nom.disabled = true;
-            }
+<!-- MODALE AJOUT MARQUE (Simple) -->
+<div class="modal fade" id="modalMarque" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle Marque</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="modal_nom_marque" class="form-control" placeholder="Nom de la marque">
+                <div id="error_marque" class="text-danger small mt-1"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="btn-add-marque">Ajouter</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Gestion de l'affichage des catégories
+    const typeSelect = document.getElementById('id_type_materiel');
+    const sectionPc = document.getElementById('section_categorie_pc');
+    const sectionPeriph = document.getElementById('section_categorie_periph');
+    const inputPc = document.getElementById('id_categorie_pc');
+    const inputPeriph = document.getElementById('id_categorie_periph');
+
+    function toggleCategories() {
+        const val = typeSelect.value;
+        sectionPc.style.display = (val === 'PC') ? 'block' : 'none';
+        sectionPeriph.style.display = (val === 'PERIPH') ? 'block' : 'none';
+        
+        // Gérer le required
+        inputPc.required = (val === 'PC');
+        inputPeriph.required = (val === 'PERIPH');
+    }
+
+    typeSelect.addEventListener('change', toggleCategories);
+    // Appeler au chargement au cas où le navigateur retient la valeur
+    document.addEventListener('DOMContentLoaded', toggleCategories);
+
+    // 2. Gestion AJAX Marque
+    document.getElementById('btn-add-marque').addEventListener('click', function() {
+        const nomInput = document.getElementById('modal_nom_marque');
+        const nom = nomInput.value.trim();
+        const errorDiv = document.getElementById('error_marque');
+        
+        if (!nom) {
+            errorDiv.textContent = "Le nom est requis.";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('nom', nom);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'ajax_create_marque' %}", {
+            method: 'POST',
+            body: formData
         })
-    </script>
-
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Ajouter l'option au select
+                const select = document.getElementById('id_marque');
+                const option = new Option(data.nom, data.id, true, true);
+                select.add(option);
+                select.value = data.id; // Sélectionner la nouvelle marque
+                
+                // Fermer modale et reset
+                const modalEl = document.getElementById('modalMarque');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                nomInput.value = '';
+                errorDiv.textContent = '';
+            } else {
+                errorDiv.textContent = "Erreur lors de la création.";
+            }
+        });
+    });
+</script>
 {% endblock %}

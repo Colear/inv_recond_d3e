@@ -1,0 +1,166 @@
+{% extends 'inventaire/parts/menu.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Inventaire Global{% endblock %}
+
+{% block contenu %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📦 Inventaire du Matériel</h2>
+    <a href="{% url 'nouveau_materiel' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nouveau Matériel
+    </a>
+</div>
+
+<!-- BARRE DE FILTRES & RECHERCHE -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body bg-light">
+        <form method="get" action="{% url 'inventaire' %}" class="row g-3">
+            
+            <!-- Recherche Texte -->
+            <div class="col-md-4">
+                <label for="search_q" class="form-label">Rechercher</label>
+                <input type="text" class="form-control" id="search_q" name="q" 
+                       value="{{ search_query }}" placeholder="N° Inv, Marque, Modèle...">
+            </div>
+
+            <!-- Filtre Statut -->
+            <div class="col-md-3">
+                <label for="filter_statut" class="form-label">Statut</label>
+                <select class="form-select" id="filter_statut" name="statut">
+                    <option value="">Tous les statuts</option>
+                    {% for value, label in statut_choices %}
+                        <option value="{{ value }}" {% if statut_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtre Type -->
+            <div class="col-md-3">
+                <label for="filter_type" class="form-label">Type</label>
+                <select class="form-select" id="filter_type" name="type_materiel">
+                    <option value="">Tous les types</option>
+                    {% for value, label in type_choices %}
+                        <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Boutons -->
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-info w-100 me-1">Filtrer</button>
+                <a href="{% url 'inventaire' %}" class="btn btn-outline-secondary" title="Réinitialiser">↺</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABLEAU DES RÉSULTATS -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-3">N° Inv.</th>
+                        <th>Type</th>
+                        <th>Marque / Modèle</th>
+                        <th>Statut</th>
+                        <th>Poids (kg)</th>
+                        <th>Bénévole</th>
+                        <th class="text-end pe-3">Date Entrée</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for materiel in materiaux %}
+                    <tr>
+                        <td class="ps-3 fw-bold text-primary">
+                            <a href="#" class="text-decoration-none">{{ materiel.numero_inventaire }}</a>
+                        </td>
+                        <td>
+                            {% if materiel.type_materiel == 'PC' %}🖥️
+                            {% elif materiel.type_materiel == 'ECRAN' %}🖼️
+                            {% elif materiel.type_materiel == 'PERIPH' %}🖱️
+                            {% endif %}
+                            <small>{{ materiel.get_type_materiel_display }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ materiel.marque.nom|default:"Inconnue" }}</strong><br>
+                            <small class="text-muted">{{ materiel.modele|truncatechars:25 }}</small>
+                        </td>
+                        <td>
+                            {% if materiel.statut == 'ENTREE' %}<span class="badge bg-warning text-dark">À diagnostiquer</span>
+                            {% elif materiel.statut == 'DIAGNOSTIC' %}<span class="badge bg-info text-dark">Diagnostic</span>
+                            {% elif materiel.statut == 'REPARATION' %}<span class="badge bg-primary">En réparation</span>
+                            {% elif materiel.statut == 'PRET_A_DON' %}<span class="badge bg-success">Prêt à donner</span>
+                            {% elif materiel.statut == 'DONNE' %}<span class="badge bg-secondary">Donné</span>
+                            {% elif materiel.statut == 'RECYCLAGE' %}<span class="badge bg-danger">Recyclage</span>
+                            {% else %}<span class="badge bg-light text-dark">{{ materiel.get_statut_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ materiel.poids_entree_kg|floatformat:2 }}
+                            {% if materiel.poids_sortie_kg %}
+                                <br><small class="text-muted">→ {{ materiel.poids_sortie_kg|floatformat:2 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if materiel.benevole_en_charge %}
+                                <small>{{ materiel.benevole_en_charge.get_full_name|default:materiel.benevole_en_charge.username }}</small>
+                            {% else %}
+                                <span class="text-muted fst-italic">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3 text-muted small">
+                            {{ materiel.date_entree|date:"d/m/Y" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="bi bi-inbox fs-1"></i>
+                                <p class="mt-2">Aucun matériel ne correspond à votre recherche.</p>
+                                <a href="{% url 'inventaire' %}" class="btn btn-sm btn-outline-primary mt-2">Voir tout l'inventaire</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PAGINATION -->
+    {% if is_paginated %}
+    <div class="card-footer bg-white">
+        <nav aria-label="Pagination" class="d-flex justify-content-center">
+            <ul class="pagination mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ search_query }}&statut={{ statut_filter }}&type_materiel={{ type_filter }}&page={{ page_obj.previous_page_number }}">Précédent</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Précédent</span></li>
+                {% endif %}
+
+                <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span></li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?q={{ search_query }}&statut={{ statut_filter }}&type_materiel={{ type_filter }}&page={{ page_obj.next_page_number }}">Suivant</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Suivant</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

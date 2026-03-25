@@ -156,7 +156,6 @@ class OrdinateurAdmin(admin.ModelAdmin):
             'fields': ('marque', 'modele', 'numero_serie', 'statut', 'date_entree', 'poids_entree_kg', 'provenance')
         }),
         ('Catégorie & Hardware de base', {
-        #    'fields': ('type_materiel', 'categorie', 'cpu', 'ram_go', 'ram_nb_barrettes', 'ram_type', 'a_carte_graphique_dediee', 'modele_gpu')
             'fields': ('categorie', 'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 'a_carte_graphique_dediee', 'modele_gpu', 'a_carte_wifi')
         }),
         ('Spécifique PC Portable', {
@@ -187,6 +186,16 @@ class OrdinateurAdmin(admin.ModelAdmin):
     # Titre de la colonne dans l'admin
     linux_installe_col.short_description = "État Linux"
 
+    def save_model(self, request, obj, form, change):
+        """
+        Surcharge de la sauvegarde pour générer le numéro d'inventaire
+        si c'est une création (pas une modification).
+        """
+        if not change and not obj.numero_inventaire:
+            # 'change' est False si c'est une création
+            obj.numero_inventaire = obj.generer_numero_inventaire()
+        super().save_model(request, obj, form, change)
+
 
 
 """====== Ecran ===============================================================
@@ -204,9 +213,19 @@ class EcranAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Identification', {'fields': ('marque', 'modele', 'numero_serie', 'statut')}),
         ('Caractéristiques', {'fields': ('diagonale_pouces', 'resolution', 'connectique')}),
-        ('Flux & Poids', {'fields': ('type_materiel', 'date_entree', 'poids_entree_kg', 'provenance', 'benevole_en_charge')}),
+        ('Flux & Poids', {'fields': ('date_entree', 'poids_entree_kg', 'provenance', 'benevole_en_charge')}),
         ('Sortie', {'fields': ('beneficiaire', 'organisme_recyclage', 'poids_sortie_kg', 'date_sortie')}),
     )
+
+    def save_model(self, request, obj, form, change):
+        """
+        Surcharge de la sauvegarde pour générer le numéro d'inventaire
+        si c'est une création (pas une modification).
+        """
+        if not change and not obj.numero_inventaire:
+            # 'change' est False si c'est une création
+            obj.numero_inventaire = obj.generer_numero_inventaire()
+        super().save_model(request, obj, form, change)
 
 
 
@@ -228,4 +247,14 @@ class PeripheriqueAdmin(admin.ModelAdmin):
         ('Flux & Poids', {'fields': ('date_entree', 'poids_entree_kg', 'provenance', 'benevole_en_charge')}),
         ('Sortie', {'fields': ('beneficiaire', 'organisme_recyclage', 'poids_sortie_kg', 'date_sortie')}),
     )
+
+    def save_model(self, request, obj, form, change):
+        """
+        Surcharge de la sauvegarde pour générer le numéro d'inventaire
+        si c'est une création (pas une modification).
+        """
+        if not change and not obj.numero_inventaire:
+            # 'change' est False si c'est une création
+            obj.numero_inventaire = obj.generer_numero_inventaire()
+        super().save_model(request, obj, form, change)
 
