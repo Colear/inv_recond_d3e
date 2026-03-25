@@ -18,11 +18,12 @@
                             Matériel        
                         </a>
                         <ul class="dropdown-menu">
-                            <li class="nav-item"><a class="nav-link" href="">Nouveau...</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'nouveau_materiel' %}">Nouveau...</a></li>
                             <li class="nav-item"><a class="nav-link" href="">Sortie...</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'imprimer_planchette' %}">Imprimer des étiquettes</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item pe-4"><a class="nav-link" href="">Inventaire</a></li>                  
+                    <li class="nav-item pe-4"><a class="nav-link" href="{% url 'inventaire' %}">Inventaire</a></li>                  
                     <li class="nav-item pe-4"><a class="nav-link" href="">Travailler sur...</a></li>
                     <li class="nav-item dropdown pe-4">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">

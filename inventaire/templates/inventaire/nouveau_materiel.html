@@ -1,18 +1,18 @@
 {% extends 'inventaire/parts/menu.html' %}
 {% load django_bootstrap5 %}
 
-{% block title %}Nouveau Matériel (Entrée Rapide){% endblock %}
+{% block title %}Nouveau Matériel{% endblock %}
 
 {% block contenu %}
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card shadow">
             <div class="card-header bg-success text-white">
-                <h4 class="mb-0">📥 Enregistrement Rapide (Entrée)</h4>
+                <h4 class="mb-0">📥 Enregistrement rapide en stock</h4>
             </div>
             <div class="card-body">
                 <p class="text-muted small">
-                    Saisissez uniquement les informations essentielles. Le diagnostic technique (CPU, RAM, etc.) sera réalisé plus tard par un bénévole spécialisé.
+                    Ne saisissez que les informations essentielles (poids, provenance, ...). Le diagnostic technique (CPU, RAM, etc.) sera réalisé plus tard.
                 </p>
 
                 <form method="post" novalidate>
@@ -42,15 +42,29 @@
                         </div>
                     </div>
 
-                    <!-- Ligne 2 : Provenance et Marque -->
+                    <!-- Ligne 2 : les deux selects pour la provenance -->
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="{{ form.provenance.id_for_label }}" class="form-label">Provenance *</label>
+                            <label for="id_categorie_provenance" class="form-label">Type de provenance *</label>
+                            {{ form.categorie_provenance }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.provenance.id_for_label }}" class="form-label">Source précise *</label>
                             {{ form.provenance }}
                             {% if form.provenance.errors %}<div class="text-danger small">{{ form.provenance.errors }}</div>{% endif %}
                         </div>
+                    </div>
+
+                    <!-- Ligne 2 bis - un éventuel champ de précisions (affiché seulement si "Autre" est choisi, géré par JS si besoin) -->
+                    <div id="div_provenance_precisions" class="mb-3" style="display:none;">
+                        <label for="{{ form.provenance_precisions.id_for_label }}" class="form-label">Précisions</label>
+                        {{ form.provenance_precisions }}
+                    </div>
+ 
+                    <!-- Ligne 3 : marque et modèle -->
+                    <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="{{ form.marque.id_for_label }}" class="form-label">Marque</label>
+                            <label for="{{ form.marque.id_for_label }}" class="form-label">Marque *</label>
                             <div class="input-group">
                                 {{ form.marque }}
                                 <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#modalMarque">
@@ -58,24 +72,21 @@
                                 </button>
                             </div>
                             {% if form.marque.errors %}<div class="text-danger small">{{ form.marque.errors }}</div>{% endif %}
-                            <small class="text-muted">Laisser vide si inconnue.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.modele.id_for_label }}" class="form-label">Modèle</label>
+                            {{ form.modele }}    
                         </div>
                     </div>
 
-                    <!-- Ligne 3 : Modèle (Optionnel) -->
-                    <div class="mb-3">
-                        <label for="{{ form.modele.id_for_label }}" class="form-label">Modèle (Optionnel)</label>
-                        {{ form.modele }}
-                    </div>
-
-                    <!-- SECTION DYNAMIQUE : CATÉGORIE PC -->
+                    <!-- Ligne 4a (dynamique) : catégorie de PC -->
                     <div id="section_categorie_pc" class="mb-3 p-3 bg-light rounded border" style="display:none;">
                         <label for="{{ form.categorie_pc.id_for_label }}" class="form-label fw-bold">Catégorie du PC *</label>
                         {{ form.categorie_pc }}
                         {% if form.categorie_pc.errors %}<div class="text-danger small">{{ form.categorie_pc.errors }}</div>{% endif %}
                     </div>
 
-                    <!-- SECTION DYNAMIQUE : CATÉGORIE PÉRIPH -->
+                    <!-- Ligne 4a (dynamique) : catégorie de périphérique -->
                     <div id="section_categorie_periph" class="mb-3 p-3 bg-light rounded border" style="display:none;">
                         <label for="{{ form.categorie_periph.id_for_label }}" class="form-label fw-bold">Type de périphérique *</label>
                         {{ form.categorie_periph }}
@@ -111,8 +122,11 @@
     </div>
 </div>
 
+
 <script>
-    // 1. Gestion de l'affichage des catégories
+
+    // ===== 1. Gestion de l'affichage des catégories ==========
+
     const typeSelect = document.getElementById('id_type_materiel');
     const sectionPc = document.getElementById('section_categorie_pc');
     const sectionPeriph = document.getElementById('section_categorie_periph');
@@ -133,7 +147,10 @@
     // Appeler au chargement au cas où le navigateur retient la valeur
     document.addEventListener('DOMContentLoaded', toggleCategories);
 
-    // 2. Gestion AJAX Marque
+
+
+    // ===== 2. Gestion AJAX des marques (pour en ajouter à la volée) ==========
+
     document.getElementById('btn-add-marque').addEventListener('click', function() {
         const nomInput = document.getElementById('modal_nom_marque');
         const nom = nomInput.value.trim();
@@ -172,5 +189,89 @@
             }
         });
     });
+
+
+
+    // ===== 3. Gestion des selects de provenance ==========
+
+    const sourcesParCategorie = {
+        'DECHETTERIE': ['sictom_nogent', 'sictom_thirons', 'dechetterie_autre'],
+        'PARTENARIAT': ['lycee_sully', 'partenariat_autre'],
+        'DON': ['don_prive', 'don_public', 'don_entreprise', 'don_asso']
+    };
+
+    const selectCategorie = document.getElementById('id_categorie_provenance');
+    const selectProvenance = document.getElementById('id_provenance');
+    const divPrecisions = document.getElementById('div_provenance_precisions');
+    const inputPrecisions = document.getElementById('id_provenance_precisions');
+
+    function filtrerEtSelectionner() {
+        const categorieChoisie = selectCategorie.value;
+        const optionsProvenance = selectProvenance.options;
+        const sourcesAutorisees = sourcesParCategorie[categorieChoisie] || [];
+        
+        let premiereOptionTrouvee = false;
+
+        // 1. Boucle sur toutes les options pour masquer/afficher et sélectionner
+        for (let i = 0; i < optionsProvenance.length; i++) {
+            const option = optionsProvenance[i];
+            const val = option.value;
+            
+            if (sourcesAutorisees.includes(val)) {
+                // L'option est valide pour cette catégorie
+                option.style.display = 'block';
+                option.disabled = false;
+                
+                // 2. Sélectionner automatiquement la PREMIÈRE option valide trouvée
+                if (!premiereOptionTrouvee) {
+                    option.selected = true;
+                    premiereOptionTrouvee = true;
+                }
+            } else {
+                // L'option n'est pas valide, on la cache et on la désactive
+                option.style.display = 'none';
+                option.disabled = true;
+                
+                // Si c'était l'option sélectionnée, on la désélectionne
+                if (option.selected) {
+                    option.selected = false;
+                }
+            }
+        }
+        
+        // 3. Gestion du champ "Précisions" (Affichage et Required)
+        const valActuelle = selectProvenance.value;
+        // On vérifie si la valeur actuelle contient "autre" (case insensitive)
+        if (valActuelle && valActuelle.toLowerCase().includes('autre')) {
+            divPrecisions.style.display = 'block';
+            inputPrecisions.required = true;
+        } else {
+            divPrecisions.style.display = 'none';
+            inputPrecisions.required = false;
+            inputPrecisions.value = ''; // On vide le champ si on change de source
+        }
+    }
+
+    // Écouteurs d'événements
+    selectCategorie.addEventListener('change', filtrerEtSelectionner);
+    // On n'a pas besoin d'écouteur sur selectProvenance pour la sélection auto, 
+    // mais on le garde pour la gestion du champ "Précisions" si l'utilisateur change manuellement
+    selectProvenance.addEventListener('change', () => {
+        const valActuelle = selectProvenance.value;
+        if (valActuelle && valActuelle.toLowerCase().includes('autre')) {
+            divPrecisions.style.display = 'block';
+            inputPrecisions.required = true;
+        } else {
+            divPrecisions.style.display = 'none';
+            inputPrecisions.required = false;
+            inputPrecisions.value = '';
+        }
+    });
+
+    // Initialisation au chargement de la page
+    // Cela permet de mettre la bonne source par défaut selon la catégorie par défaut (souvent la première du select)
+    document.addEventListener('DOMContentLoaded', filtrerEtSelectionner);
+
 </script>
 {% endblock %}
+

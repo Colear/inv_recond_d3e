@@ -147,6 +147,27 @@ class Materiel(models.Model):
         ('PERIPH', 'Périphérique'),
     ]
 
+    CATEGORIES_PROVENANCE = [
+        ('DECHETTERIE', 'Déchetterie'),
+        ('PARTENARIAT', 'Partenariat'),
+        ('DON', 'Don'),
+    ]
+
+    SOURCES_PROVENANCE = [
+        # Déchetteries
+        ('sictom_nogent', 'Sictom Nogent'),
+        ('sictom_thirons', 'Sictom Thirons'),
+        ('dechetterie_autre', 'Autre déchetterie'),
+        # Partenariats
+        ('lycee_sully', 'Lycée Sully'),
+        ('partenariat_autre', 'Autre partenariat'),
+        # Dons
+        ('don_prive', 'Don privé'),
+        ('don_public', 'Don du secteur public'),
+        ('don_entreprise', "Don d'entreprise"),
+        ('don_asso', "Don d'association"),
+    ]
+
     # Identification
     numero_inventaire = models.CharField(max_length=20, unique=True, blank=True, editable=False)
     type_materiel = models.CharField(max_length=10, choices=TYPE_CHOICES, default='PC')
@@ -161,10 +182,25 @@ class Materiel(models.Model):
         help_text="Marque du matériel"
     )
 
+
+    # Provenance : on stocke uniquement la source précise (ex: 'sictom_nogent')
+    # La catégorie (Déchetterie, ...) est facilement récupérable via le code
+    provenance = models.CharField(
+        max_length=30,
+        choices=SOURCES_PROVENANCE,
+        default='sictom_nogent', # Valeur par défaut sécurisée
+        help_text="Origine du matériel"
+    )
+    # Optionnel : Un champ texte libre si "Autre" est sélectionné
+    provenance_precisions = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Précisez le nom si 'Autre' est sélectionné"
+    )
+
     # Flux & Poids
     date_entree = models.DateField(default=timezone.now)
     poids_entree_kg = models.DecimalField(max_digits=6, decimal_places=3, default=0)
-    provenance = models.CharField(max_length=200, blank=True)
     
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='ENTREE')
     
@@ -203,6 +239,15 @@ class Materiel(models.Model):
             except: new_num = 1
         else: new_num = 1
         return f"{prefix}{new_num:04d}"
+    
+    # Récupération du type de provenance d'après la source précise
+    def get_categorie_provenance(self):
+        if self.provenance in ['sictom_nogent', 'sictom_thirons', 'dechetterie_autre']:
+            return 'DECHETTERIE'
+        elif self.provenance in ['lycee_sully', 'partenariat_autre']:
+            return 'PARTENARIAT'
+        else:
+            return 'DON'
 
     # Tri par défaut selon la date d'entrée
     class Meta:

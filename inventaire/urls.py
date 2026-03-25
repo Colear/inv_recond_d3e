@@ -1,11 +1,13 @@
 from django.urls import path
-from .views import HomePageView, InventaireListView, NouveauMaterielView, ajax_create_marque
+from .views import HomePageView, InventaireListView, NouveauMaterielView, ajax_create_marque, imprimer_planche_etiquettes, search_by_inv
 
 
 urlpatterns = [
     path('', HomePageView.as_view(), name='home'),
     path('inventaire/', InventaireListView.as_view(), name='inventaire'),
     path('nouveau/', NouveauMaterielView.as_view(), name='nouveau_materiel'),
-    path('ajax/create-marque/', ajax_create_marque, name='ajax_create_marque'),    
+    path('ajax/create-marque/', ajax_create_marque, name='ajax_create_marque'),
+    path('imprimer-planchette/', imprimer_planche_etiquettes, name='imprimer_planchette'),
+    path('search-by-inv/<str:numero_inv>/', search_by_inv, name='search_by_inv'),   
 ]
 
