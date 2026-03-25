@@ -27,7 +27,7 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">À Diagnostiquer</h5>
                     <p class="display-4 fw-bold">{{ stats_ordis.en_attente }}</p>
-                    <p class="card-text small">Ordinateurs en attente</p>
+                    <p class="card-text small">PC en attente d'analyse</p>
                     <a href="{% url 'inventaire' %}?statut=ENTREE" class="btn btn-sm btn-light text-warning fw-bold">Voir la liste</a>
                 </div>
             </div>
@@ -37,7 +37,7 @@
         <div class="col-md-3">
             <div class="card text-white bg-primary shadow-sm h-100">
                 <div class="card-body text-center">
-                    <h5 class="card-title">En Réparation</h5>
+                    <h5 class="card-title">En installation</h5>
                     <p class="display-4 fw-bold">{{ stats_ordis.en_reparation }}</p>
                     <p class="card-text small">PC en cours de travail</p>
                     <a href="{% url 'inventaire' %}?statut=REPARATION" class="btn btn-sm btn-light text-primary fw-bold">Voir la liste</a>
@@ -51,7 +51,7 @@
                 <div class="card-body text-center">
                     <h5 class="card-title">Prêts à Donner</h5>
                     <p class="display-4 fw-bold">{{ stats_ordis.pret_a_don }}</p>
-                    <p class="card-text small">Configurés et testés</p>
+                    <p class="card-text small">PC Configurés et testés</p>
                     <a href="{% url 'inventaire' %}?statut=PRET_A_DON" class="btn btn-sm btn-light text-success fw-bold">Voir la liste</a>
                 </div>
             </div>
@@ -106,9 +106,13 @@
                             <td>{{ materiel.date_entree|date:"d/m/Y" }}</td>
                             <td>{{ materiel.poids_entree_kg|floatformat:2 }} kg</td>
                             <td>
-                                {% if materiel.statut == 'ENTREE' %}<span class="badge bg-warning text-dark">Entrée</span>
-                                {% elif materiel.statut == 'DONNE' %}<span class="badge bg-success">Donné</span>
-                                {% else %}<span class="badge bg-secondary">{{ materiel.get_statut_display }}</span>
+                                {% if materiel.statut == 'ENTREE' %}<span class="badge bg-warning text-dark">À diagnostiquer</span>
+                                {% elif materiel.statut == 'DIAGNOSTIC' %}<span class="badge bg-info text-dark">Diagnostic</span>
+                                {% elif materiel.statut == 'REPARATION' %}<span class="badge bg-primary">En réparation</span>
+                                {% elif materiel.statut == 'PRET_A_DON' %}<span class="badge bg-success">Prêt à donner</span>
+                                {% elif materiel.statut == 'DONNE' %}<span class="badge bg-secondary">Donné</span>
+                                {% elif materiel.statut == 'RECYCLAGE' %}<span class="badge bg-danger">Recyclage</span>
+                                {% else %}<span class="badge bg-light text-dark">{{ materiel.get_statut_display }}</span>
                                 {% endif %}
                             </td>
                             <td>
