@@ -17,7 +17,7 @@ from django.conf import settings
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
 from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque
-from .forms import NouveauMaterielForm
+from .forms import NouveauMaterielForm, DiagnosticRepaForm, DisqueFormSet
 
 
 
@@ -319,7 +319,8 @@ def search_by_inv(request, numero_inv):
         materiel = Materiel.objects.get(numero_inventaire=numero_inv)
         
         # SUCCÈS : Redirection immédiate vers la fiche d'édition dans l'Admin
-        return redirect('admin:inventaire_materiel_change', pk=materiel.pk)
+        # return redirect('admin:inventaire_materiel_change', pk=materiel.pk)
+        return redirect('modifier_materiel', pk=materiel.pk)
         
     except Materiel.DoesNotExist:
         # ÉCHEC : On affiche simplement une page d'information
@@ -328,4 +329,80 @@ def search_by_inv(request, numero_inv):
             'message': f"Le numéro d'inventaire <strong>{numero_inv}</strong> n'est pas encore attribué à un matériel."
         }
         return render(request, 'inventaire/etiquette_non_trouvee.html', context)
+
+
+
+"""====== modifier_materiel ===================================================
+    Vue commune au diagnostic et à la réparation / configuration d'ordis.
+============================================================================"""
+
+def modifier_materiel(request, pk):
+    materiel = get_object_or_404(Materiel, pk=pk)
+    
+    # Vérification du type (votre code existant)
+    if not hasattr(materiel, 'ordinateur') or materiel.ordinateur is None:
+        messages.warning(request, f"Le matériel {materiel.numero_inventaire} est un {materiel.get_type_materiel_display}. Seuls les ordinateurs peuvent être modifiés ici.")
+        return redirect('home')
+        
+    ordinateur = materiel.ordinateur
+
+    if request.method == 'POST':
+        form = DiagnosticRepaForm(request.POST, instance=ordinateur)
+        formset = DisqueFormSet(request.POST, instance=ordinateur)
+        
+        if form.is_valid() and formset.is_valid():  
+            action = request.POST.get('action')
+            
+            # On prépare l'instance sans sauvegarder tout de suite
+            instance = form.save(commit=False)
+            
+            # --- CORRECTION DES VALEURS PAR DÉFAUT ---
+            # Si le champ est vide, on force la valeur du modèle
+            if instance.cout_reparation is None or instance.cout_reparation == '':
+                instance.cout_reparation = Decimal('0.00')
+            
+            # Gestion dynamique du statut selon le bouton
+            if action == 'validate_diag':
+                instance.statut = 'REPARATION'
+                messages.success(request, "✅ Diagnostic validé. Passage en mode Réparation.")
+                
+            elif action == 'validate_repa':
+                instance.statut = 'PRET_A_DON'
+                messages.success(request, "🎉 Réparation validée ! Prêt à donner.")
+            
+            elif action == 'save_diag':
+                # Si on veut juste sauvegarder sans changer le statut final
+                if instance.statut == 'ENTREE':
+                    instance.statut = 'DIAGNOSTIC'
+                messages.info(request, "💾 Modifications enregistrées.")
+            
+            else:
+                # Sauvegarde simple, on garde le statut actuel ou celui sélectionné manuellement
+                pass
+
+            # Sauvegarde finale
+            instance.save()
+            formset.save()
+            
+            return redirect('modifier_materiel', pk=pk)
+            
+        else:
+            # Affichage des erreurs pour le débogage si ça échoue encore
+            if not form.is_valid():
+                print(f"Erreurs Form : {form.errors}")
+            if not formset.is_valid():
+                print(f"Erreurs Formset : {formset.errors}")
+
+    else:
+        # GET : Affichage initial
+        form = DiagnosticRepaForm(instance=ordinateur)
+        formset = DisqueFormSet(instance=ordinateur)
+
+    context = {
+        'materiel': materiel,
+        'ordinateur': ordinateur,
+        'form': form,
+        'formset': formset,
+    }
+    return render(request, 'inventaire/modifier_materiel.html', context)
 

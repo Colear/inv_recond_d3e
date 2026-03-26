@@ -93,7 +93,9 @@
                     <tbody>
                         {% for materiel in derniers_materiaux %}
                         <tr>
-                            <td class="fw-bold text-primary">{{ materiel.numero_inventaire }}</td>
+                            <td class="fw-bold text-primary">
+                                <a href="{% url 'search_by_inv' materiel.numero_inventaire %}" class="text-decoration-none">{{ materiel.numero_inventaire }}</a>
+                            </td>
                             <td>
                                 {% if materiel.type_materiel == 'PC' %}🖥️
                                 {% elif materiel.type_materiel == 'ECRAN' %}🖼️

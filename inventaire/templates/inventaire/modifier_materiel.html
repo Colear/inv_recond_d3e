@@ -1,0 +1,313 @@
+{% extends 'inventaire/parts/menu.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Modification : {{ materiel.numero_inventaire }}{% endblock %}
+
+{% block contenu %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>🔧 {{ materiel.marque }} {{ materiel.modele }} <small class="text-muted">({{ materiel.numero_inventaire }})</small></h2>
+            <p class="text-muted">
+                Statut : <span class="badge bg-{% if materiel.statut == 'ENTREE' %}warning{% elif materiel.statut == 'REPARATION' %}primary{% elif materiel.statut == 'PRET_A_DON' %}success{% else %}secondary{% endif %}">
+                    {{ materiel.get_statut_display }}
+                </span>
+                | Entrée le : {{ materiel.date_entree|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'inventaire' %}" class="btn btn-outline-secondary">← Retour liste</a>
+            <!-- Lien vers étiquette (à adapter selon votre vue finale) -->
+            <a href="{% url 'search_by_inv' materiel.numero_inventaire %}" target="_blank" class="btn btn-outline-primary">🖨️ Étiquette</a> 
+        </div>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- ======================================================================= -->
+        <!-- BLOC 1 : DIAGNOSTIC COMPLET (Hardware + Stockage)                       -->
+        <!-- TOUJOURS VISIBLE ET MODIFIABLE (sauf si déjà sorti/donné)               -->
+        <!-- ======================================================================= -->
+        <div class="card border-warning mb-4">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🔍 Étape 1 : Diagnostic Hardware & Stockage</h5>
+                <span class="badge bg-light text-dark">Obligatoire pour continuer</span>
+            </div>
+            <div class="card-body">
+                
+                <!-- 1.1 CPU & RAM -->
+                <h6 class="border-bottom pb-2">Processeur & Mémoire</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Processeur (CPU)</label>
+                        {{ form.cpu }}
+                        <div class="form-text">Ex: Intel i5-8500</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Score PassMark</label>
+                        {{ form.cpu_score }}
+                        <div class="form-text">Seuil de viabilité : ~800 points.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Carte WiFi ?</label>
+                        <div class="form-check form-switch mt-2">
+                            {{ form.a_carte_wifi }}
+                            <label class="form-check-label">Présente</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">RAM (Go)</label>
+                        {{ form.ram_go }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Nb Barrettes</label>
+                        {{ form.ram_nb_barrettes }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Type RAM</label>
+                        {{ form.ram_type }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">GPU Dédié ?</label>
+                        <div class="form-check form-switch mt-2">
+                            {{ form.a_carte_graphique_dediee }}
+                            <label class="form-check-label">Oui</label>
+                        </div>
+                        {% if form.a_carte_graphique_dediee.value %}
+                            <small class="text-muted">Modèle : {{ form.modele_gpu.value }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Rapport de diagnostic global</label>
+                        {{ form.rapport_diagnostic }}
+                        <div class="form-text">Synthèse de l'état, pannes majeures, tests effectués.</div>
+                    </div>
+                </div>
+
+                <!-- 1.2 STOCKAGE (LE FORMSET - DÉPLACÉ ICI) -->
+                <h6 class="border-bottom pb-2 mt-4">💾 Identification des Disques (Stockage)</h6>
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i> Recensez TOUS les disques présents. C'est l'étape cruciale pour la sécurité des données et le réemploi.
+                </div>
+                
+                {{ formset.management_form }}
+                <table class="table table-bordered table-hover" id="disk-formset-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:15%">Type</th>
+                            <th style="width:10%">Cap. (Go)</th>
+                            <th style="width:20%">Marque / Modèle</th>
+                            <th style="width:15%">N° Inv. (DSK-xxxx)</th>
+                            <th style="width:10%" class="text-center">Sain ?</th>
+                            <th style="width:10%" class="text-center">Données ?</th>
+                            <th style="width:5%" class="text-center">Suppr.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for disk_form in formset %}
+                        <tr class="disk-row {% if forloop.last and disk_form.instance.pk is None %}empty-form{% endif %}">
+                            <!-- Champs cachés (ID, DELETE, ORDER) -->
+                            {% for hidden in disk_form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+
+                            <td>{{ disk_form.type_disque }}</td>
+                            <td>{{ disk_form.capacite_go }}</td>
+                            <td>
+                                {{ disk_form.marque }}
+                                {{ disk_form.modele }}
+                            </td>
+                            <td>{{ disk_form.numero_inventaire_disque }}</td>
+                            <td class="text-center">{{ disk_form.est_sain }}</td>
+                            <td class="text-center">{{ disk_form.contient_donnees }}</td>
+                            <td class="text-center align-middle">
+                                {% if disk_form.instance.pk %}
+                                    <div class="form-check d-flex justify-content-center">
+                                        {{ disk_form.DELETE }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="add-disk-btn">
+                    + Ajouter un disque
+                </button>
+                <div class="form-text mt-1">Utilisez ce bouton pour ajouter des disques supplémentaires.</div>
+
+                <!-- BOUTON ACTION DIAGNOSTIC -->
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <small class="text-muted align-self-center">
+                        Valider le diagnostic pour passer à l'étape de réparation.
+                    </small>
+                    <button type="submit" name="action" value="validate_diag" class="btn btn-warning btn-lg">
+                        ✅ Valider le Diagnostic & Ouvrir Réparation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================================= -->
+        <!-- BLOC 2 : RÉPARATION & CONFIGURATION (CONDITIONNEL)                      -->
+        <!-- VISIBLE SEULEMENT SI STATUT >= REPARATION                               -->
+        <!-- ======================================================================= -->
+        {% if materiel.statut in 'REPARATION,PRET_A_DON,DONNE,RECYCLAGE' %}
+        <div class="card border-success mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">🛠️ Étape 2 : Réparation & Configuration Linux</h5>
+            </div>
+            <div class="card-body">
+                
+                <!-- Si le PC est déjà donné/recyclé, on passe en lecture seule -->
+                {% if materiel.statut in 'DONNE,RECYCLAGE' %}
+                    <div class="alert alert-secondary">
+                        <i class="bi bi-lock"></i> Ce matériel a déjà été sorti. Les informations sont figées.
+                    </div>
+                    <!-- On pourrait afficher les valeurs en lecture seule ici -->
+                {% else %}
+                    <!-- Formulaire de réparation (Modifiable) -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Pièces changées</label>
+                            {{ form.pieces_changees }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Coût réparation (€)</label>
+                            {{ form.cout_reparation }}
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <h6 class="text-success">🐧 Configuration Logicielle</h6>
+                        <div class="col-md-4">
+                            <label class="form-label">Linux Installé ?</label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.linux_installe }}
+                                <label class="form-check-label">Oui</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Distribution</label>
+                            {{ form.linux_distro }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date MAJ OS</label>
+                            {{ form.date_maj_os }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">OnlyOffice</label>
+                            <div class="form-check mt-2">
+                                {{ form.onlyoffice_installe }}
+                                <label class="form-check-label">Installé</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Logiciel Photo</label>
+                            {{ form.logiciel_photo }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Lecteur Vidéo</label>
+                            {{ form.media_player }}
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                {{ form.firefox_configure }}
+                                <label class="form-check-label">Firefox configuré (Favoris, extensions, page d'accueil)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOUTON ACTION REPARATION -->
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                        <button type="submit" name="action" value="validate_repa" class="btn btn-success btn-lg">
+                            🎉 Valider la Réparation (Prêt à donner)
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <!-- Message si le diagnostic n'est pas encore validé -->
+        <div class="alert alert-light border text-center py-5">
+            <h4 class="text-muted">⏳ En attente de validation du diagnostic</h4>
+            <p class="mb-0">Veuillez compléter la section ci-dessus et cliquer sur "Valider le Diagnostic" pour accéder aux outils de réparation.</p>
+        </div>
+        {% endif %}
+
+    </form>
+
+    <!-- Historique -->
+    <div class="card mt-4 bg-light">
+        <div class="card-header">
+            <h5 class="mb-0">📜 Historique des interventions</h5>
+        </div>
+        <div class="card-body">
+            {% if materiel.interventions.all %}
+                <ul class="list-group list-group-flush">
+                    {% for interv in materiel.interventions.all %}
+                    <li class="list-group-item bg-transparent">
+                        <small class="text-muted">{{ interv.date_heure|date:"d/m/Y H:i" }} - <strong>{{ interv.benevole.get_full_name|default:interv.benevole.username }}</strong></small>
+                        <p class="mb-0 mt-1">{{ interv.commentaire }}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0">Aucune intervention enregistrée.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT JS POUR LE FORMSET (À inclure) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formsetPrefix = "{{ formset.prefix }}";
+    const tableBody = document.querySelector("#disk-formset-table tbody");
+    const totalFormsInput = document.querySelector(`#id_${formsetPrefix}-TOTAL_FORMS`);
+    const addBtn = document.getElementById("add-disk-btn");
+
+    if (addBtn && tableBody && totalFormsInput) {
+        addBtn.addEventListener('click', function() {
+            const currentTotal = parseInt(totalFormsInput.value);
+            const emptyRow = document.querySelector(".empty-form");
+            
+            if (!emptyRow) {
+                alert("Erreur interne : modèle de ligne introuvable.");
+                return;
+            }
+
+            const newRow = emptyRow.cloneNode(true);
+            newRow.classList.remove("empty-form");
+            
+            // Mise à jour des index
+            newRow.innerHTML = newRow.innerHTML.replace(
+                new RegExp(`${formsetPrefix}-(\\d+|__prefix__)`, 'g'),
+                `${formsetPrefix}-${currentTotal}`
+            );
+
+            // Reset des valeurs
+            const inputs = newRow.querySelectorAll("input, select");
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') input.checked = false;
+                else input.value = "";
+            });
+
+            // Ajout bouton suppression
+            const deleteCell = newRow.querySelector("td:nth-child(7)");
+            deleteCell.innerHTML = `
+                <div class="form-check d-flex justify-content-center">
+                    <input type="checkbox" name="${formsetPrefix}-${currentTotal}-DELETE" class="form-check-input">
+                </div>
+            `;
+
+            tableBody.appendChild(newRow);
+            totalFormsInput.value = currentTotal + 1;
+        });
+    }
+});
+</script>
+{% endblock %}
+

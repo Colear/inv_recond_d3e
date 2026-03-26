@@ -79,7 +79,7 @@
                     {% for materiel in materiaux %}
                     <tr>
                         <td class="ps-3 fw-bold text-primary">
-                            <a href="#" class="text-decoration-none">{{ materiel.numero_inventaire }}</a>
+                            <a href="{% url 'search_by_inv' materiel.numero_inventaire %}" class="text-decoration-none">{{ materiel.numero_inventaire }}</a>
                         </td>
                         <td>
                             {% if materiel.type_materiel == 'PC' %}🖥️
