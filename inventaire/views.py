@@ -15,8 +15,9 @@ from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
 from django.db.models import Count, Sum, Q
+from django.contrib.auth.decorators import login_required
 from datetime import timedelta
-from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque
+from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque, Intervention
 from .forms import NouveauMaterielForm, DiagnosticRepaForm, DisqueFormSet
 
 
@@ -336,15 +337,16 @@ def search_by_inv(request, numero_inv):
     Vue commune au diagnostic et à la réparation / configuration d'ordis.
 ============================================================================"""
 
+@login_required # Sécurité : seul un connecté peut modifier
 def modifier_materiel(request, pk):
     materiel = get_object_or_404(Materiel, pk=pk)
     
-    # Vérification du type (votre code existant)
     if not hasattr(materiel, 'ordinateur') or materiel.ordinateur is None:
-        messages.warning(request, f"Le matériel {materiel.numero_inventaire} est un {materiel.get_type_materiel_display}. Seuls les ordinateurs peuvent être modifiés ici.")
+        messages.warning(request, "Ce matériel n'est pas un ordinateur.")
         return redirect('home')
         
     ordinateur = materiel.ordinateur
+    benevole = request.user # Le bénévole connecté
 
     if request.method == 'POST':
         form = DiagnosticRepaForm(request.POST, instance=ordinateur)
@@ -352,49 +354,113 @@ def modifier_materiel(request, pk):
         
         if form.is_valid() and formset.is_valid():  
             action = request.POST.get('action')
-            
-            # On prépare l'instance sans sauvegarder tout de suite
             instance = form.save(commit=False)
             
-            # --- CORRECTION DES VALEURS PAR DÉFAUT ---
-            # Si le champ est vide, on force la valeur du modèle
+            # --- LOGIQUE MÉTIER PAR BOUTON ---
+            
+            # 1. COMMENCER LE DIAGNOSTIC (Transition ENTREE -> DIAGNOSTIC)
+            if action == 'start_diag':
+                if materiel.statut == 'ENTREE':
+                    instance.statut = 'DIAGNOSTIC'
+                    instance.benevole_en_charge = benevole # Attribution auto
+                    instance.date_prise_en_charge = timezone.now()
+                    
+                    # Historique
+                    Intervention.objects.create(
+                        materiel=materiel,
+                        benevole=benevole,
+                        type_action='DIAG',
+                        commentaire="Début du diagnostic. Prise en charge du dossier."
+                    )
+                    messages.success(request, f"🔍 Diagnostic commencé par {benevole.get_full_name()}.")
+                else:
+                    messages.info(request, "Le diagnostic est déjà en cours ou validé.")
+
+            # 2. VALIDER ET PASSER EN RÉPARATION (DIAGNOSTIC -> REPARATION)
+            elif action == 'validate_diag_repa':
+                # On s'assure que le bénévole est bien attribué (s'il ne l'était pas avant)
+                if not instance.benevole_en_charge:
+                    instance.benevole_en_charge = benevole
+                    instance.date_prise_en_charge = timezone.now()
+                
+                instance.statut = 'REPARATION'
+                
+                # Historique
+                Intervention.objects.create(
+                    materiel=materiel,
+                    benevole=benevole,
+                    type_action='DIAG',
+                    commentaire="Diagnostic validé. Passage en phase de réparation."
+                )
+                messages.success(request, "✅ Diagnostic validé. Passage en mode Réparation.")
+
+            # 3. VALIDER ET RELÂCHER (DIAGNOSTIC -> ENTREE ou REPARATION sans bénévole)
+            elif action == 'validate_diag_release':
+                # On valide le diagnostic techniquement, mais on libère le bénévole
+                # Le statut passe à REPARATION (prêt pour le suivant) ou reste DIAGNOSTIC si vous préférez
+                # Ici, je le passe en REPARATION pour dire "Prêt pour la suite" mais sans propriétaire
+                instance.statut = 'REPARATION'
+                instance.benevole_en_charge = None # Libération
+                # On ne touche pas à date_prise_en_charge (on garde la trace de qui a commencé)
+                
+                Intervention.objects.create(
+                    materiel=materiel,
+                    benevole=benevole,
+                    type_action='TRANSFERT',
+                    commentaire="Diagnostic terminé. Dossier relâché pour la suite."
+                )
+                messages.success(request, "👐 Diagnostic validé et dossier relâché. Un autre bénévole pourra prendre la suite.")
+
+            # 4. ENREGISTRER ET QUITTER (Sauvegarde brouillon)
+            elif action == 'save_exit':
+                # Si c'était en ENTREE, on passe en DIAGNOSTIC car on a commencé à travailler dessus
+                if materiel.statut == 'ENTREE':
+                    instance.statut = 'DIAGNOSTIC'
+                    instance.benevole_en_charge = benevole
+                    instance.date_prise_en_charge = timezone.now()
+                    
+                    Intervention.objects.create(
+                        materiel=materiel,
+                        benevole=benevole,
+                        type_action='NOTE',
+                        commentaire="Début du diagnostic (sauvegarde intermédiaire)."
+                    )
+                else:
+                    messages.info(request, "💾 Modifications enregistrées.")
+
+            # 5. VALIDER RÉPARATION FINALE (REPARATION -> PRET_A_DON)
+            elif action == 'validate_repa':
+                instance.statut = 'PRET_A_DON'
+                Intervention.objects.create(
+                    materiel=materiel,
+                    benevole=benevole,
+                    type_action='REPA',
+                    commentaire="Réparation et configuration validées. Prêt à donner."
+                )
+                messages.success(request, "🎉 Réparation validée ! Prêt à donner.")
+
+            # --- SAUVEGARDE COMMUNE ---
+            # Nettoyage des champs numériques vides
             if instance.cout_reparation is None or instance.cout_reparation == '':
                 instance.cout_reparation = Decimal('0.00')
             
-            # Gestion dynamique du statut selon le bouton
-            if action == 'validate_diag':
-                instance.statut = 'REPARATION'
-                messages.success(request, "✅ Diagnostic validé. Passage en mode Réparation.")
-                
-            elif action == 'validate_repa':
-                instance.statut = 'PRET_A_DON'
-                messages.success(request, "🎉 Réparation validée ! Prêt à donner.")
-            
-            elif action == 'save_diag':
-                # Si on veut juste sauvegarder sans changer le statut final
-                if instance.statut == 'ENTREE':
-                    instance.statut = 'DIAGNOSTIC'
-                messages.info(request, "💾 Modifications enregistrées.")
-            
-            else:
-                # Sauvegarde simple, on garde le statut actuel ou celui sélectionné manuellement
-                pass
-
-            # Sauvegarde finale
             instance.save()
             formset.save()
             
-            return redirect('modifier_materiel', pk=pk)
-            
+            # Redirection intelligente
+            if action == 'save_exit':
+                return redirect('inventaire') # Retour liste
+            else:
+                return redirect('modifier_materiel', pk=pk) # Reste sur la page pour continuer
+
         else:
-            # Affichage des erreurs pour le débogage si ça échoue encore
-            if not form.is_valid():
-                print(f"Erreurs Form : {form.errors}")
-            if not formset.is_valid():
-                print(f"Erreurs Formset : {formset.errors}")
+            # Debug si erreur
+            if not form.is_valid(): print(f"Erreurs Form : {form.errors}")
+            if not formset.is_valid(): print(f"Erreurs Formset : {formset.errors}")
+            messages.error(request, "Une erreur est survenue dans le formulaire. Vérifiez les champs.")
 
     else:
-        # GET : Affichage initial
+        # GET : Initialisation
         form = DiagnosticRepaForm(instance=ordinateur)
         formset = DisqueFormSet(instance=ordinateur)
 
@@ -403,6 +469,6 @@ def modifier_materiel(request, pk):
         'ordinateur': ordinateur,
         'form': form,
         'formset': formset,
+        'benevole_actuel': benevole,
     }
     return render(request, 'inventaire/modifier_materiel.html', context)
-

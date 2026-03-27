@@ -111,6 +111,9 @@ class DiagnosticRepaForm(forms.ModelForm):
         # Ainsi, même s'ils sont vides ou absents, la validation Python passera.
         self.fields['cout_reparation'].required = False
         self.fields['statut'].required = False
+        # On peut même désactiver le select de statut dans le HTML pour forcer l'usage des boutons
+        self.fields['statut'].widget.attrs['readonly'] = True 
+        self.fields['statut'].help_text = "Ce champ est géré automatiquement par les boutons d'action."
         
         # Optionnel : mettre une valeur initiale visuelle pour cout_reparation
         if self.instance.pk and self.instance.cout_reparation == 0:
