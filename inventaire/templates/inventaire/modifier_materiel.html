@@ -1,24 +1,36 @@
 {% extends 'inventaire/parts/menu.html' %}
 {% load django_bootstrap5 %}
 
-{% block title %}Modification : {{ materiel.numero_inventaire }}{% endblock %}
+{% block title %}Modification d'ordinateur {{ materiel.numero_inventaire }}{% endblock %}
 
 {% block contenu %}
 <div class="container-fluid">
+
     <!-- En-tête -->
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2>🔧 {{ materiel.marque }} {{ materiel.modele }} <small class="text-muted">({{ materiel.numero_inventaire }})</small></h2>
+            <h2>🖥️ {{ materiel.marque|default:"Marque inconnue" }} - {{ materiel.modele|default:"modèle inconnu" }} - 
+                {% if ordinateur.categorie == "PORTABLE" %}
+                    PC portable
+                {% elif ordinateur.categorie == "FIXE" %}
+                    PC fixe
+                {% elif ordinateur.categorie == "ALL_IN_ONE" %}
+                    PC tout en un
+                {% else %}
+                    autre type d'ordinateur
+                {% endif %}
+            </h2>
             <p class="text-muted">
-                Statut : <span class="badge bg-{% if materiel.statut == 'ENTREE' %}warning{% elif materiel.statut == 'REPARATION' %}primary{% elif materiel.statut == 'PRET_A_DON' %}success{% else %}secondary{% endif %}">
+                Statut : <span class="badge bg-{% if materiel.statut == 'ENTREE' %}warning{% elif materiel.statut == 'DIAGNOSTIC' %}info{% elif materiel.statut == 'REPARATION' %}primary{% elif materiel.statut == 'PRET_A_DON' %}success{% else %}secondary{% endif %}">
                     {{ materiel.get_statut_display }}
                 </span>
-                | Entrée le : {{ materiel.date_entree|date:"d/m/Y" }}
+                {% if materiel.benevole_en_charge %}
+                    | <i class="bi bi-person"></i> {{ materiel.benevole_en_charge.get_full_name|default:materiel.benevole_en_charge.username }}
+                {% endif %}
             </p>
         </div>
         <div class="col-md-4 text-end">
             <a href="{% url 'inventaire' %}" class="btn btn-outline-secondary">← Retour liste</a>
-            <!-- Lien vers étiquette (à adapter selon votre vue finale) -->
             <a href="{% url 'search_by_inv' materiel.numero_inventaire %}" target="_blank" class="btn btn-outline-primary">🖨️ Étiquette</a> 
         </div>
     </div>
@@ -27,161 +39,144 @@
         {% csrf_token %}
 
         <!-- ======================================================================= -->
-        <!-- BLOC 1 : DIAGNOSTIC COMPLET (Hardware + Stockage)                       -->
-        <!-- TOUJOURS VISIBLE ET MODIFIABLE (sauf si déjà sorti/donné)               -->
+        <!-- BLOC 1 : DIAGNOSTIC HARDWARE & STOCKAGE                                 -->
         <!-- ======================================================================= -->
         <div class="card border-warning mb-4">
-            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">🔍 Étape 1 : Diagnostic Hardware & Stockage</h5>
-                <span class="badge bg-light text-dark">Obligatoire pour continuer</span>
+
+            <!-- 1. EN-TÊTE (Toujours visible, cliquable pour plier/déplier le reste) -->
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#collapseDiagnostic" 
+                style="cursor: pointer;">
+                <h5 class="mb-0">🔧 Étape 1 : Diagnostic Hardware & Stockage</h5>
+                <i class="bi bi-chevron-{% if materiel.statut == 'ENTREE' %}down{% else %}up{% endif %}"></i>
             </div>
-            <div class="card-body">
-                
-                <!-- 1.1 CPU & RAM -->
-                <h6 class="border-bottom pb-2">Processeur & Mémoire</h6>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label">Processeur (CPU)</label>
-                        {{ form.cpu }}
-                        <div class="form-text">Ex: Intel i5-8500</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Score PassMark</label>
-                        {{ form.cpu_score }}
-                        <div class="form-text">Seuil de viabilité : ~800 points.</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Carte WiFi ?</label>
-                        <div class="form-check form-switch mt-2">
-                            {{ form.a_carte_wifi }}
-                            <label class="form-check-label">Présente</label>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">RAM (Go)</label>
-                        {{ form.ram_go }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Nb Barrettes</label>
-                        {{ form.ram_nb_barrettes }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Type RAM</label>
-                        {{ form.ram_type }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">GPU Dédié ?</label>
-                        <div class="form-check form-switch mt-2">
-                            {{ form.a_carte_graphique_dediee }}
-                            <label class="form-check-label">Oui</label>
-                        </div>
-                        {% if form.a_carte_graphique_dediee.value %}
-                            <small class="text-muted">Modèle : {{ form.modele_gpu.value }}</small>
-                        {% endif %}
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Rapport de diagnostic global</label>
-                        {{ form.rapport_diagnostic }}
-                        <div class="form-text">Synthèse de l'état, pannes majeures, tests effectués.</div>
-                    </div>
-                </div>
 
-                <!-- 1.2 STOCKAGE (LE FORMSET - DÉPLACÉ ICI) -->
-                <h6 class="border-bottom pb-2 mt-4">💾 Identification des Disques (Stockage)</h6>
-                <div class="alert alert-info small">
-                    <i class="bi bi-info-circle"></i> Recensez TOUS les disques présents. C'est l'étape cruciale pour la sécurité des données et le réemploi.
-                </div>
-                
-                {{ formset.management_form }}
-                <table class="table table-bordered table-hover" id="disk-formset-table">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:15%">Type</th>
-                            <th style="width:10%">Cap. (Go)</th>
-                            <th style="width:20%">Marque / Modèle</th>
-                            <th style="width:15%">N° Inv. (DSK-xxxx)</th>
-                            <th style="width:10%" class="text-center">Sain ?</th>
-                            <th style="width:10%" class="text-center">Données ?</th>
-                            <th style="width:5%" class="text-center">Suppr.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for disk_form in formset %}
-                        <tr class="disk-row {% if forloop.last and disk_form.instance.pk is None %}empty-form{% endif %}">
-                            <!-- Champs cachés (ID, DELETE, ORDER) -->
-                            {% for hidden in disk_form.hidden_fields %}
-                                {{ hidden }}
-                            {% endfor %}
-
-                            <td>{{ disk_form.type_disque }}</td>
-                            <td>{{ disk_form.capacite_go }}</td>
-                            <td>
-                                {{ disk_form.marque }}
-                                {{ disk_form.modele }}
-                            </td>
-                            <td>{{ disk_form.numero_inventaire_disque }}</td>
-                            <td class="text-center">{{ disk_form.est_sain }}</td>
-                            <td class="text-center">{{ disk_form.contient_donnees }}</td>
-                            <td class="text-center align-middle">
-                                {% if disk_form.instance.pk %}
-                                    <div class="form-check d-flex justify-content-center">
-                                        {{ disk_form.DELETE }}
-                                    </div>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="add-disk-btn">
-                    + Ajouter un disque
-                </button>
-                <div class="form-text mt-1">Utilisez ce bouton pour ajouter des disques supplémentaires.</div>
-
-                <!-- Dans la carte "Diagnostic Hardware & Stockage" -->
-                <div class="mt-4 pt-3 border-top d-flex justify-content-between flex-wrap gap-2">
-                    <small class="text-muted align-self-center w-100 mb-2">
-                        {% if materiel.statut == 'ENTREE' %}
-                            <i class="bi bi-info-circle"></i> Cliquez sur "Commencer le diagnostic" pour vous attribuer ce dossier.
-                        {% else %}
-                            <i class="bi bi-person-check"></i> Assigné à : <strong>{{ materiel.benevole_en_charge.get_full_name|default:"Non assigné" }}</strong>
-                        {% endif %}
-                    </small>
-
-                    {% if materiel.statut == 'ENTREE' %}
-                        <!-- CAS 1 : On n'a jamais touché au PC -->
-                        <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg w-100">
+            <!-- 2. ZONE D'ACTION (TOUJOURS VISIBLE - Hors du collapse) -->
+            <div class="p-3 bg-light border-bottom">
+                {% if materiel.statut == 'ENTREE' %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted fst-italic">
+                            <i class="bi bi-info-circle"></i> Cliquez ci-dessous pour prendre en charge ce dossier et déplier le formulaire.
+                        </span>
+                        <!-- Le bouton est ICI, toujours visible -->
+                        <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg">
                             🚀 Commencer le diagnostic (Me l'attribuer)
                         </button>
-
-                    {% elif materiel.statut == 'DIAGNOSTIC' %}
-                        <!-- CAS 2 : Le diagnostic est en cours -->
-                        
-                        <!-- Option A : Je finis et je passe à la réparation -->
-                        <button type="submit" name="action" value="validate_diag_repa" class="btn btn-success btn-lg">
-                            ✅ Valider et passer en Réparation
-                        </button>
-
-                        <!-- Option B : Je finis mais je laisse la main -->
-                        <button type="submit" name="action" value="validate_diag_release" class="btn btn-info text-white btn-lg">
-                            👋 Valider et relâcher le dossier
-                        </button>
-
-                        <!-- Option C : Je sauvegarde et je pars -->
-                        <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary btn-lg">
-                            💾 Enregistrer et quitter
-                        </button>
-
-                    {% elif materiel.statut == 'REPARATION' %}
-                        <!-- CAS 3 : On est déjà en réparation (on affiche juste le bouton final) -->
-                        <div class="alert alert-success w-100 mb-2">
-                            Diagnostic validé. Vous pouvez maintenant configurer le logiciel ci-dessous.
+                    </div>
+                
+                {% elif materiel.statut == 'DIAGNOSTIC' %}
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="text-primary fw-bold">
+                            <i class="bi bi-person-check"></i> En cours par : {{ materiel.benevole_en_charge.get_full_name|default:"Un bénévole" }}
+                        </span>
+                        <div class="btn-group">
+                            <button type="submit" name="action" value="validate_diag_repa" class="btn btn-success">✅ Valider & Réparer</button>
+                            <button type="submit" name="action" value="validate_diag_release" class="btn btn-info text-white">👋 Relâcher</button>
+                            <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">💾 Quitter</button>
                         </div>
-                        <!-- Le bouton de validation réparation sera dans la section du bas -->
-                    {% endif %}
+                    </div>
+
+                {% elif materiel.statut == 'REPARATION' %}
+                    <div class="alert alert-success mb-0 py-2">
+                        <i class="bi bi-check-circle"></i> Diagnostic validé. Veuillez compléter l'étape 2 ci-dessous.
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- 3. CONTENU DU FORMULAIRE (Replié si ENTREE, Déplié sinon) -->
+            <div id="collapseDiagnostic" class="collapse{% if materiel.statut != 'ENTREE' %} show{% endif %}">
+                <div class="card-body">
+                    
+                    <!-- Champs Marque et Modèle -->
+                    <div class="row g-3 mb-4 p-3 bg-white rounded border">
+                        <div class="col-md-6">
+                            <label for="input_marque" class="form-label fw-bold">Marque</label>
+                            <input type="text" class="form-control" id="input_marque" name="input_marque" 
+                                value="{{ materiel.marque.nom|default:'' }}" placeholder="Ex: Dell, HP...">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="input_modele" class="form-label fw-bold">Modèle exact</label>
+                            <input type="text" class="form-control" id="input_modele" name="input_modele" 
+                                value="{{ materiel.modele }}" placeholder="Ex: Latitude 5420...">
+                        </div>
+                    </div>
+
+                    <!-- CPU & RAM -->
+                    <h6 class="border-bottom pb-2">Processeur & Mémoire</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Processeur (CPU)</label>
+                            {{ form.cpu }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Score PassMark</label>
+                            {{ form.cpu_score }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Carte WiFi ?</label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.a_carte_wifi }}
+                                <label class="form-check-label">Présente</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">RAM (Go)</label>
+                            {{ form.ram_go }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Nb Barrettes</label>
+                            {{ form.ram_nb_barrettes }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Type RAM</label>
+                            {{ form.ram_type }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">GPU Dédié ?</label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.a_carte_graphique_dediee }}
+                                <label class="form-check-label">Oui</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Rapport de diagnostic</label>
+                            {{ form.rapport_diagnostic }}
+                        </div>
+                    </div>
+
+                    <!-- Disques (FormSet) -->
+                    <h6 class="border-bottom pb-2 mt-4">💾 Identification des Disques</h6>
+                    {{ formset.management_form }}
+                    <table class="table table-bordered table-hover" id="disk-formset-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Type</th><th>Cap. (Go)</th><th>Marque/Modèle</th><th>N° Inv.</th><th>Sain ?</th><th>Données ?</th><th>Suppr.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disk_form in formset %}
+                            <tr class="disk-row {% if forloop.last and disk_form.instance.pk is None %}empty-form{% endif %}">
+                                {% for hidden in disk_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                <td>{{ disk_form.type_disque }}</td>
+                                <td>{{ disk_form.capacite_go }}</td>
+                                <td>{{ disk_form.marque }} {{ disk_form.modele }}</td>
+                                <td>{{ disk_form.numero_inventaire_disque }}</td>
+                                <td class="text-center">{{ disk_form.est_sain }}</td>
+                                <td class="text-center">{{ disk_form.contient_donnees }}</td>
+                                <td class="text-center">{% if disk_form.instance.pk %}{{ disk_form.DELETE }}{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-disk-btn">+ Ajouter un disque</button>
+                    
+                    <!-- Note: Les boutons d'action ont été déplacés plus haut (zone toujours visible) -->
                 </div>
             </div>
-        </div>
+
+        </div> <!-- bloc diagnostic -->
+        
 
         <!-- ======================================================================= -->
         <!-- BLOC 2 : RÉPARATION & CONFIGURATION (CONDITIONNEL)                      -->

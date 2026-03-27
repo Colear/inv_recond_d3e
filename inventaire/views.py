@@ -94,11 +94,11 @@ class InventaireListView(ListView):
     model = Materiel
     template_name = 'inventaire/inventaire_list.html'
     context_object_name = 'materiaux'
-    paginate_by = 25  # Nombre d'éléments par page
+    paginate_by = 20  # Nombre d'éléments par page
 
     def get_queryset(self):
         # On part de la base : tous les matériels ordonnés par date d'entrée (plus récent en premier)
-        queryset = Materiel.objects.select_related('marque', 'benevole_en_charge', 'beneficiaire').order_by('-date_entree')
+        queryset = Materiel.objects.select_related('marque', 'benevole_en_charge', 'beneficiaire').order_by('-numero_inventaire')
 
         # --- FILTRE : RECHERCHE TEXTE ---
         search_query = self.request.GET.get('q', '')
@@ -355,6 +355,22 @@ def modifier_materiel(request, pk):
         if form.is_valid() and formset.is_valid():  
             action = request.POST.get('action')
             instance = form.save(commit=False)
+            
+            # --- TRAITEMENT DES CHAMPS MANUELS (MARQUE/MODELE) ---
+            nom_marque = request.POST.get('input_marque', '').strip()
+            nom_modele = request.POST.get('input_modele', '').strip()
+            
+            # Gestion de la Marque (Création si n'existe pas, ou récupération)
+            if nom_marque:
+                marque_obj, created = Marque.objects.get_or_create(nom=nom_marque)
+                instance.materiel_ptr.marque = marque_obj # Accès au parent via materiel_ptr
+            
+            # Gestion du Modèle
+            if nom_modele:
+                instance.materiel_ptr.modele = nom_modele
+            
+            # Sauvegarde du parent (Materiel) avec les nouvelles infos
+            instance.materiel_ptr.save()
             
             # --- LOGIQUE MÉTIER PAR BOUTON ---
             
