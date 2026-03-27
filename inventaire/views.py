@@ -337,7 +337,11 @@ def search_by_inv(request, numero_inv):
     Vue commune au diagnostic et à la réparation / configuration d'ordis.
 ============================================================================"""
 
-@login_required # Sécurité : seul un connecté peut modifier
+# inventaire/views.py
+
+# ... (imports)
+
+@login_required
 def modifier_materiel(request, pk):
     materiel = get_object_or_404(Materiel, pk=pk)
     
@@ -346,7 +350,7 @@ def modifier_materiel(request, pk):
         return redirect('home')
         
     ordinateur = materiel.ordinateur
-    benevole = request.user # Le bénévole connecté
+    benevole = request.user
 
     if request.method == 'POST':
         form = DiagnosticRepaForm(request.POST, instance=ordinateur)
@@ -371,14 +375,15 @@ def modifier_materiel(request, pk):
             
             # Sauvegarde du parent (Materiel) avec les nouvelles infos
             instance.materiel_ptr.save()
-            
-            # --- LOGIQUE MÉTIER PAR BOUTON ---
-            
-            # 1. COMMENCER LE DIAGNOSTIC (Transition ENTREE -> DIAGNOSTIC)
+            # ------------------------------------------------
+
+            # --- NOUVELLE LOGIQUE DES BOUTONS ---
+            redirect_to_inventory = False # Flag pour savoir si on doit renvoyer vers la liste
+
             if action == 'start_diag':
                 if materiel.statut == 'ENTREE':
                     instance.statut = 'DIAGNOSTIC'
-                    instance.benevole_en_charge = benevole # Attribution auto
+                    instance.benevole_en_charge = benevole
                     instance.date_prise_en_charge = timezone.now()
                     
                     # Historique
@@ -392,91 +397,86 @@ def modifier_materiel(request, pk):
                 else:
                     messages.info(request, "Le diagnostic est déjà en cours ou validé.")
 
-            # 2. VALIDER ET PASSER EN RÉPARATION (DIAGNOSTIC -> REPARATION)
             elif action == 'validate_diag_repa':
-                # On s'assure que le bénévole est bien attribué (s'il ne l'était pas avant)
                 if not instance.benevole_en_charge:
                     instance.benevole_en_charge = benevole
                     instance.date_prise_en_charge = timezone.now()
-                
                 instance.statut = 'REPARATION'
-                
-                # Historique
                 Intervention.objects.create(
-                    materiel=materiel,
-                    benevole=benevole,
-                    type_action='DIAG',
-                    commentaire="Diagnostic validé. Passage en phase de réparation."
+                    materiel=materiel, benevole=benevole, type_action='DIAG',
+                    commentaire="Diagnostic validé. Passage en réparation."
                 )
-                messages.success(request, "✅ Diagnostic validé. Passage en mode Réparation.")
+                messages.success(request, "✅ Diagnostic validé. Mode Réparation activé.")
 
-            # 3. VALIDER ET RELÂCHER (DIAGNOSTIC -> ENTREE ou REPARATION sans bénévole)
             elif action == 'validate_diag_release':
-                # On valide le diagnostic techniquement, mais on libère le bénévole
-                # Le statut passe à REPARATION (prêt pour le suivant) ou reste DIAGNOSTIC si vous préférez
-                # Ici, je le passe en REPARATION pour dire "Prêt pour la suite" mais sans propriétaire
-                instance.statut = 'REPARATION'
-                instance.benevole_en_charge = None # Libération
-                # On ne touche pas à date_prise_en_charge (on garde la trace de qui a commencé)
+                # Validation du diagnostic + Libération du bénévole + RETOUR LISTE
+                instance.statut = 'REPARATION' # On considère que le diag est fait, prêt pour la suite
+                instance.benevole_en_charge = None # On libère le dossier
+                # On garde la date de prise en charge initiale pour l'historique
                 
                 Intervention.objects.create(
-                    materiel=materiel,
-                    benevole=benevole,
-                    type_action='TRANSFERT',
-                    commentaire="Diagnostic terminé. Dossier relâché pour la suite."
+                    materiel=materiel, benevole=benevole, type_action='TRANSFERT',
+                    commentaire="Diagnostic validé. Dossier relâché pour la suite (spécialiste)."
                 )
-                messages.success(request, "👐 Diagnostic validé et dossier relâché. Un autre bénévole pourra prendre la suite.")
+                messages.success(request, "👋 Diagnostic validé et dossier relâché. Retour à l'inventaire.")
+                redirect_to_inventory = True # <--- FLAG ACTIVÉ
 
-            # 4. ENREGISTRER ET QUITTER (Sauvegarde brouillon)
+            elif action == 'recycle_now':
+                # NOUVEAU : Passage direct au recyclage depuis le diagnostic
+                instance.statut = 'RECYCLAGE'
+                # On ne libère pas forcément le bénévole, il reste responsable de la décision de recyclage
+                if not instance.benevole_en_charge:
+                    instance.benevole_en_charge = benevole
+                
+                # On récupère le commentaire du diagnostic pour expliquer le recyclage
+                raison = instance.rapport_diagnostic or "Non réparable / Trop ancien (Décision diagnostic)"
+                
+                Intervention.objects.create(
+                    materiel=materiel, benevole=benevole, type_action='SORTIE',
+                    commentaire=f"Décision de recyclage : {raison}"
+                )
+                messages.warning(request, "♻️ Matériel envoyé au recyclage.")
+                redirect_to_inventory = True # <--- FLAG ACTIVÉ (On sort le PC du flux actif)
+
             elif action == 'save_exit':
-                # Si c'était en ENTREE, on passe en DIAGNOSTIC car on a commencé à travailler dessus
                 if materiel.statut == 'ENTREE':
                     instance.statut = 'DIAGNOSTIC'
                     instance.benevole_en_charge = benevole
                     instance.date_prise_en_charge = timezone.now()
-                    
                     Intervention.objects.create(
-                        materiel=materiel,
-                        benevole=benevole,
-                        type_action='NOTE',
-                        commentaire="Début du diagnostic (sauvegarde intermédiaire)."
+                        materiel=materiel, benevole=benevole, type_action='NOTE',
+                        commentaire="Début du diagnostic (sauvegarde)."
                     )
-                else:
-                    messages.info(request, "💾 Modifications enregistrées.")
+                messages.info(request, "💾 Modifications enregistrées.")
+                redirect_to_inventory = True # <--- FLAG ACTIVÉ
 
-            # 5. VALIDER RÉPARATION FINALE (REPARATION -> PRET_A_DON)
             elif action == 'validate_repa':
                 instance.statut = 'PRET_A_DON'
                 Intervention.objects.create(
-                    materiel=materiel,
-                    benevole=benevole,
-                    type_action='REPA',
-                    commentaire="Réparation et configuration validées. Prêt à donner."
+                    materiel=materiel, benevole=benevole, type_action='REPA',
+                    commentaire="Réparation et configuration validées."
                 )
-                messages.success(request, "🎉 Réparation validée ! Prêt à donner.")
+                messages.success(request, "🎉 Prêt à donner !")
 
-            # --- SAUVEGARDE COMMUNE ---
-            # Nettoyage des champs numériques vides
+            # --- Sauvegarde ---
             if instance.cout_reparation is None or instance.cout_reparation == '':
                 instance.cout_reparation = Decimal('0.00')
-            
             instance.save()
             formset.save()
             
-            # Redirection intelligente
-            if action == 'save_exit':
-                return redirect('inventaire') # Retour liste
+            # --- Redirection Intelligente ---
+            if redirect_to_inventory:
+                return redirect('inventaire')
             else:
-                return redirect('modifier_materiel', pk=pk) # Reste sur la page pour continuer
+                return redirect('modifier_materiel', pk=pk)
 
         else:
-            # Debug si erreur
+            # Gestion des erreurs (code précédent)
             if not form.is_valid(): print(f"Erreurs Form : {form.errors}")
             if not formset.is_valid(): print(f"Erreurs Formset : {formset.errors}")
             messages.error(request, "Une erreur est survenue dans le formulaire. Vérifiez les champs.")
 
     else:
-        # GET : Initialisation
         form = DiagnosticRepaForm(instance=ordinateur)
         formset = DisqueFormSet(instance=ordinateur)
 
@@ -485,6 +485,6 @@ def modifier_materiel(request, pk):
         'ordinateur': ordinateur,
         'form': form,
         'formset': formset,
-        'benevole_actuel': benevole,
     }
     return render(request, 'inventaire/modifier_materiel.html', context)
+

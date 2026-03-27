@@ -52,36 +52,64 @@
                 <i class="bi bi-chevron-{% if materiel.statut == 'ENTREE' %}down{% else %}up{% endif %}"></i>
             </div>
 
-            <!-- 2. ZONE D'ACTION (TOUJOURS VISIBLE - Hors du collapse) -->
+            <!-- 2. ZONE D'ACTION (TOUJOURS VISIBLE) -->
             <div class="p-3 bg-light border-bottom">
-                {% if materiel.statut == 'ENTREE' %}
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted fst-italic">
-                            <i class="bi bi-info-circle"></i> Cliquez ci-dessous pour prendre en charge ce dossier et déplier le formulaire.
-                        </span>
-                        <!-- Le bouton est ICI, toujours visible -->
-                        <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg">
-                            🚀 Commencer le diagnostic (Me l'attribuer)
+            
+            {% if materiel.statut == 'ENTREE' %}
+                <!-- CAS 1 : Démarrage -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted fst-italic">
+                        <i class="bi bi-info-circle"></i> Cliquez ci-dessous pour prendre en charge ce dossier.
+                    </span>
+                    <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg">
+                        🚀 Commencer le diagnostic
+                    </button>
+                </div>
+            
+            {% elif materiel.statut == 'DIAGNOSTIC' %}
+                <!-- CAS 2 : En cours de diagnostic -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="text-primary fw-bold small">
+                        <i class="bi bi-person-check"></i> En cours par : {{ materiel.benevole_en_charge.get_full_name|default:"Un bénévole" }}
+                    </div>
+                    <div class="btn-group" role="group">
+                        <!-- Bouton Recycler (Nouveau) -->
+                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                onclick="return confirm('Confirmez-vous que ce matériel est bon pour le recyclage ? Cette action est difficilement réversible.');">
+                            ♻️ Recycler
+                        </button>
+                        
+                        <!-- Séparateur visuel -->
+                        <div class="vr mx-2 bg-secondary"></div>
+
+                        <!-- Bouton Relâcher (Redirige vers inventaire) -->
+                        <button type="submit" name="action" value="validate_diag_release" class="btn btn-info text-white">
+                            👋 Valider & Relâcher
+                        </button>
+                        
+                        <!-- Bouton Valider & Continuer -->
+                        <button type="submit" name="action" value="validate_diag_repa" class="btn btn-success">
+                            ✅ Valider & Réparer
                         </button>
                     </div>
-                
-                {% elif materiel.statut == 'DIAGNOSTIC' %}
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <span class="text-primary fw-bold">
-                            <i class="bi bi-person-check"></i> En cours par : {{ materiel.benevole_en_charge.get_full_name|default:"Un bénévole" }}
-                        </span>
-                        <div class="btn-group">
-                            <button type="submit" name="action" value="validate_diag_repa" class="btn btn-success">✅ Valider & Réparer</button>
-                            <button type="submit" name="action" value="validate_diag_release" class="btn btn-info text-white">👋 Relâcher</button>
-                            <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">💾 Quitter</button>
-                        </div>
-                    </div>
+                </div>
 
-                {% elif materiel.statut == 'REPARATION' %}
-                    <div class="alert alert-success mb-0 py-2">
-                        <i class="bi bi-check-circle"></i> Diagnostic validé. Veuillez compléter l'étape 2 ci-dessous.
-                    </div>
-                {% endif %}
+            {% elif materiel.statut == 'REPARATION' %}
+                <!-- CAS 3 : Déjà validé, en attente de réparation -->
+                <div class="alert alert-success mb-0 py-2 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-check-circle"></i> Diagnostic validé. En attente de réparation/configuration.</span>
+                    <button type="submit" name="action" value="recycle_now" class="btn btn-sm btn-outline-dark"
+                            onclick="return confirm('Recycler ce matériel maintenant ?');">
+                        ♻️ Recycler
+                    </button>
+                </div>
+                
+            {% elif materiel.statut == 'RECYCLAGE' %}
+                <div class="alert alert-secondary mb-0 py-2">
+                    <i class="bi bi-lock"></i> Ce matériel a été envoyé au recyclage.
+                </div>
+
+            {% endif %}
             </div>
             
             <!-- 3. CONTENU DU FORMULAIRE (Replié si ENTREE, Déplié sinon) -->
