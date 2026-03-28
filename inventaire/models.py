@@ -133,10 +133,11 @@ class Materiel(models.Model):
     STATUT_CHOICES = [
         ('ENTREE', 'En attente de diagnostic'),
         ('DIAGNOSTIC', 'En cours de diagnostic'),
-        ('REPARATION', 'En cours de réparation'),
-        ('PRET_A_DON', 'Réparé - Prêt à donner'),
+        ('ATTENTE_PIECES', 'En attente de pièces'), 
+        ('REPARATION', 'En cours de configuration'),
+        ('PRET_A_DON', 'Prêt à donner'),
         ('DONNE', 'Donné'),
-        ('RECYCLAGE', 'Envoyé au recyclage'),
+        ('RECYCLAGE', 'Recyclé'),
         ('PERDU', 'Perdu / Volé'),
     ]
 
