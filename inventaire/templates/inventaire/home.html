@@ -33,6 +33,18 @@
             </div>
         </div>
 
+        <!-- Carte En Attente Pièces -->
+        <div class="col-md-3">
+            <div class="card text-white bg-warning shadow-sm h-100" style="opacity: 0.9;">
+                <div class="card-body text-center">
+                    <h5 class="card-title">En Attente Pièces</h5>
+                    <p class="display-4 fw-bold">{{ stats_ordis.en_attente_pieces }}</p>
+                    <p class="card-text small">PC sains en attente de RAM/Disque</p>
+                    <a href="{% url 'inventaire' %}?statut=ATTENTE_PIECES" class="btn btn-sm btn-light text-warning fw-bold">Voir la liste</a>
+                </div>
+            </div>
+        </div>
+
         <!-- Carte : En Réparation (En cours) -->
         <div class="col-md-3">
             <div class="card text-white bg-primary shadow-sm h-100">

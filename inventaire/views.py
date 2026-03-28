@@ -56,6 +56,7 @@ class HomePageView(TemplateView):
             en_attente=Count('id', filter=Q(statut='ENTREE')),
             en_diagnostic=Count('id', filter=Q(statut='DIAGNOSTIC')),
             en_reparation=Count('id', filter=Q(statut='REPARATION')),
+            en_attente_pieces=Count('id', filter=Q(statut='ATTENTE_PIECES')),
             pret_a_don=Count('id', filter=Q(statut='PRET_A_DON')),
             total=Count('id')
         )
@@ -431,6 +432,23 @@ def modifier_materiel(request, pk):
                 commentaire_intervention = f"Décision de recyclage : {raison}"
                 messages.warning(request, "♻️ Matériel envoyé au recyclage.")
                 redirect_to_inventory = True # RETOUR LISTE
+
+            elif action == 'wait_parts':
+                # Transition : -> ATTENTE_PIECES
+                instance.statut = 'ATTENTE_PIECES'
+                if not instance.benevole_en_charge:
+                    instance.benevole_en_charge = benevole
+                    instance.date_prise_en_charge = timezone.now()
+                
+                raison = instance.rapport_diagnostic[:100] or "En attente de composants (RAM/Disque)"
+                Intervention.objects.create(
+                    materiel=materiel,
+                    benevole=benevole,
+                    type_action='NOTE',
+                    commentaire=f"Mise en attente de pièces : {raison}"
+                )
+                messages.info(request, "⏳ Matériel placé en attente de pièces. Il sort du flux de réparation actif.")
+                redirect_to_inventory = True # Retour à la liste
 
             elif action == 'validate_repa':
                 # Fin de réparation : REPARATION -> PRET_A_DON
