@@ -108,8 +108,42 @@
                         </div>
                     </div>
 
+                {% elif materiel.statut == 'ATTENTE_PIECES' %}
+                    <!-- CAS : En attente de pièces -->
+                    <div class="alert alert-warning mb-0 py-3">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="alert-heading mb-1">⏳ En attente de pièces</h5>
+                                <p class="mb-0 small">
+                                    Ce matériel est sain mais incomplet. Il est actuellement stocké en attente de composants.
+                                    {% if materiel.benevole_en_charge %}
+                                        <br><em>Actuellement assigné à : {{ materiel.benevole_en_charge.get_full_name }}</em>
+                                    {% else %}
+                                        <br><em class="text-muted">Aucun bénévole assigné (Dossier libre).</em>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            
+                            <div class="col-md-4 text-end">
+                                <div class="d-grid gap-2">
+                                    <!-- Bouton 1 : Je fais tout (Hardware + Software) -->
+                                    <button type="submit" name="action" value="reactivate_keep" class="btn btn-success">
+                                        🔧 Réactiver & Configurer
+                                        <br><small class="fw-normal">(Je reste sur le dossier)</small>
+                                    </button>
+                                    
+                                    <!-- Bouton 2 : Je fais juste le Hardware (Puis je libère) -->
+                                    <button type="submit" name="action" value="reactivate_release" class="btn btn-outline-primary">
+                                        🔩 Réactiver (Hardware seul)
+                                        <br><small class="fw-normal">(Je retourne à la liste)</small>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 {% elif materiel.statut == 'REPARATION' %}
-                    <!-- CAS 3 : Déjà validé, en attente de réparation -->
+                    <!-- CAS 4 : Déjà validé, en attente de réparation -->
                     <div class="alert alert-success mb-0 py-2 d-flex justify-content-between align-items-center">
                         <span><i class="bi bi-check-circle"></i> Diagnostic validé. En attente de réparation/configuration.</span>
                         <!-- On garde l'option Recyclage si on se rend compte que c'est HS pendant la réparation -->

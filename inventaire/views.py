@@ -436,19 +436,75 @@ def modifier_materiel(request, pk):
             elif action == 'wait_parts':
                 # Transition : -> ATTENTE_PIECES
                 instance.statut = 'ATTENTE_PIECES'
-                if not instance.benevole_en_charge:
-                    instance.benevole_en_charge = benevole
-                    instance.date_prise_en_charge = timezone.now()
                 
-                raison = instance.rapport_diagnostic[:100] or "En attente de composants (RAM/Disque)"
+                # LIBÉRATION DU BÉNÉVOLE
+                # On note qui a fait la mise en attente dans l'historique, mais on vide le champ "en charge"
+                ancien_benevole = instance.benevole_en_charge
+                instance.benevole_en_charge = None 
+                # On ne touche pas à date_prise_en_charge pour garder la trace de la première prise en charge
+                
+                raison = instance.rapport_diagnostic[:100] or "En attente de composants"
                 Intervention.objects.create(
                     materiel=materiel,
-                    benevole=benevole,
+                    benevole=benevole, # Celui qui clique maintenant
                     type_action='NOTE',
-                    commentaire=f"Mise en attente de pièces : {raison}"
+                    commentaire=f"Mise en attente de pièces par {benevole.get_full_name()}. (Dossier libéré). Raison : {raison}"
                 )
-                messages.info(request, "⏳ Matériel placé en attente de pièces. Il sort du flux de réparation actif.")
-                redirect_to_inventory = True # Retour à la liste
+                messages.info(request, "⏳ Matériel placé en attente de pièces. Le dossier a été libéré pour un futur spécialiste.")
+                redirect_to_inventory = True
+
+            elif action == 'reactivate_keep':
+                # Option 1 : Réactiver et Garder (Je fais tout : Hardware + Software)
+                if materiel.statut == 'ATTENTE_PIECES':
+                    instance.statut = 'REPARATION'
+                    instance.benevole_en_charge = benevole # Je me l'attribue
+                    instance.date_prise_en_charge = timezone.now()
+                    
+                    Intervention.objects.create(
+                        materiel=materiel,
+                        benevole=benevole,
+                        type_action='TRANSFERT',
+                        commentaire="Réactivation et prise en charge complète (Hardware + Software)."
+                    )
+                    messages.success(request, "✅ Matériel réactivé. Vous restez en charge du dossier pour la configuration.")
+                    # redirect_to_inventory = False (Reste sur la page)
+
+            elif action == 'reactivate_release':
+                # Option 2 : Réactiver et Relâcher (Je fais le Hardware, je laisse le Software à un autre)
+                if materiel.statut == 'ATTENTE_PIECES':
+                    instance.statut = 'REPARATION'
+                    instance.benevole_en_charge = None # Je libère le dossier pour la suite
+                    
+                    Intervention.objects.create(
+                        materiel=materiel,
+                        benevole=benevole,
+                        type_action='TRANSFERT',
+                        commentaire=f"Réactivation Hardware par {benevole.get_full_name()}. Pièces installées. Dossier relâché pour configuration Linux."
+                    )
+                    messages.success(request, "🔧 Matériel réactivé (Hardware fait). Le dossier est retourné à l'inventaire pour un spécialiste Linux.")
+                    redirect_to_inventory = True # Retour liste
+
+            elif action == 'reactivate_repa':
+                # Transition : ATTENTE_PIECES -> REPARATION
+                if materiel.statut == 'ATTENTE_PIECES':
+                    instance.statut = 'REPARATION'
+                    
+                    # On attribue le dossier au bénévole actuel s'il n'y en a pas, 
+                    # ou on le laisse tel quel si c'est le même qui reprend son travail.
+                    if not instance.benevole_en_charge:
+                        instance.benevole_en_charge = benevole
+                        instance.date_prise_en_charge = timezone.now()
+                    
+                    Intervention.objects.create(
+                        materiel=materiel,
+                        benevole=benevole,
+                        type_action='TRANSFERT', # ou 'REPA'
+                        commentaire="Réactivation du dossier : pièces manquantes installées. Passage en réparation."
+                    )
+                    messages.success(request, "✅ Matériel réactivé. Vous pouvez maintenant procéder à la configuration.")
+                    # redirect_to_inventory = False (On reste sur la page pour travailler)
+                else:
+                    messages.warning(request, "Ce statut ne permet pas la réactivation.")
 
             elif action == 'validate_repa':
                 # Fin de réparation : REPARATION -> PRET_A_DON
