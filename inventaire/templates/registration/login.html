@@ -1,0 +1,85 @@
+<!-- inventaire/templates/registration/login.html -->
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Atelier Recyclage</title>
+    {% bootstrap_css %}
+    <style>
+        body {
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 10px;
+        }
+        .login-header {
+            background-color: #0d6efd; /* Bleu Bootstrap ou couleur de votre asso */
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+        }
+        .login-body {
+            padding: 30px;
+            background: white;
+            border-radius: 0 0 10px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card login-card">
+        <div class="login-header">
+            <h3 class="mb-0">🔐 Accès Bénévoles</h3>
+            <small>Gestion de Stock & Réparation</small>
+        </div>
+        <div class="login-body">
+            
+            {% if form.errors %}
+                <div class="alert alert-danger" role="alert">
+                    Identifiant ou mot de passe incorrect.
+                </div>
+            {% endif %}
+
+            {% if next %}
+                {% if user.is_authenticated %}
+                    <div class="alert alert-warning" role="alert">
+                        Votre compte n'a pas accès à cette page. Pour continuer, connectez-vous avec un compte autorisé.
+                    </div>
+                {% else %}
+                    <div class="alert alert-info" role="alert">
+                        Veuillez vous connecter pour accéder à cette page.
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                {% bootstrap_form form %}
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Se connecter</button>
+                </div>
+            </form>
+
+            <div class="mt-4 text-center small text-muted">
+                <p>Compte inactif ou oublié ?<br>Contactez un responsable de l'association.</p>
+            </div>
+        </div>
+    </div>
+
+    {% bootstrap_javascript %}
+</body>
+</html>
+

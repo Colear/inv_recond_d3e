@@ -12,13 +12,15 @@ from django.views.generic import TemplateView, ListView, CreateView
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
-from django.urls import reverse
-from django.conf import settings
+from django.urls import reverse_lazy
+# from django.conf import settings
 from django.db.models import Count, Sum, Q
 from django.contrib.auth.decorators import login_required
-from datetime import timedelta
+from django.contrib.auth.views import LoginView, LogoutView
 from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque, Intervention
 from .forms import NouveauMaterielForm, DiagnosticRepaForm, DisqueFormSet
+from .decorators import benevole_actif_required
+from .mixins import AuthBenevoleMixin
 
 
 
@@ -41,11 +43,26 @@ Pour référence, conseil pour l'utilisation de class ou de fonction pour les vu
 
 
 
+"""====== Login / logout ======================================================
+    Pages de connexion / deconnexion.
+============================================================================"""
+
+class CustomLoginView(LoginView):
+    template_name = 'registration/login.html'
+    redirect_authenticated_user = True  # Si déjà connecté, renvoie vers home
+    # La redirection par défaut après login est gérée par LOGIN_REDIRECT_URL dans settings.py
+
+class CustomLogoutView(LogoutView):
+    # Redirige vers la page de login après déconnexion
+    next_page = 'login' 
+
+
+
 """====== Home ===============================================================
     Affichage de la home page.
 ============================================================================"""
 
-class HomePageView(TemplateView):
+class HomePageView(AuthBenevoleMixin, TemplateView):
     template_name = "inventaire/home.html"
 
     def get_context_data(self, **kwargs):
@@ -91,7 +108,7 @@ class HomePageView(TemplateView):
     Utilisation d'une class ListView qui supporte nativement la pagination
 ============================================================================"""
 
-class InventaireListView(ListView):
+class InventaireListView(AuthBenevoleMixin, ListView):
     model = Materiel
     template_name = 'inventaire/inventaire_list.html'
     context_object_name = 'materiaux'
@@ -148,7 +165,7 @@ class InventaireListView(ListView):
     Contient également une vue Ajax pour ajouter une marque à la volée.
 ============================================================================"""
 
-class NouveauMaterielView(CreateView):
+class NouveauMaterielView(AuthBenevoleMixin, CreateView): 
     model = Materiel # On utilise le parent pour le formulaire, mais on sauvera dans l'enfant
     form_class = NouveauMaterielForm
     template_name = 'inventaire/nouveau_materiel.html'
@@ -200,8 +217,19 @@ class NouveauMaterielView(CreateView):
         return redirect(self.success_url)
 
 
+
 # --- Vue AJAX pour permettre l'ajout de marque à la volée ---
+
 def ajax_create_marque(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Non authentifié'})
+    
+    try:
+        if not request.user.profile_benevole.actif and not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Compte inactif'})
+    except Benevole.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Profil introuvable'})
+    
     if request.method == 'POST':
         nom = request.POST.get('nom')
         if nom:
@@ -217,6 +245,8 @@ def ajax_create_marque(request):
     se paramétrer via l'URL de la requête GET.
 ============================================================================"""
 
+@login_required
+@benevole_actif_required
 def imprimer_planche_etiquettes(request):
 
     # 1. Définir la plage d'étiquettes à imprimer
@@ -314,6 +344,8 @@ def imprimer_planche_etiquettes(request):
     de ce matériel (temporairement l'admin) ou une page d'erreur.
 ============================================================================"""
 
+@login_required
+@benevole_actif_required
 def search_by_inv(request, numero_inv):
 
     try:
@@ -338,9 +370,8 @@ def search_by_inv(request, numero_inv):
     Vue commune au diagnostic et à la réparation / configuration d'ordis.
 ============================================================================"""
 
-# inventaire/views.py
-
 @login_required
+@benevole_actif_required
 def modifier_materiel(request, pk):
     materiel = get_object_or_404(Materiel, pk=pk)
     
@@ -556,3 +587,4 @@ def modifier_materiel(request, pk):
         'formset': formset,
     }
     return render(request, 'inventaire/modifier_materiel.html', context)
+

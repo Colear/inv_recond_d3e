@@ -1,8 +1,14 @@
 from django.urls import path
-from .views import HomePageView, InventaireListView, NouveauMaterielView, ajax_create_marque, imprimer_planche_etiquettes, search_by_inv, modifier_materiel
+from .views import HomePageView, InventaireListView, NouveauMaterielView, ajax_create_marque, imprimer_planche_etiquettes, search_by_inv, modifier_materiel, CustomLoginView, CustomLogoutView
+
 
 
 urlpatterns = [
+
+    # Pages de Connexion / Déconnexion
+    path('login/', CustomLoginView.as_view(), name='login'),
+    path('logout/', CustomLogoutView.as_view(), name='logout'),
+
     path('', HomePageView.as_view(), name='home'),
     path('inventaire/', InventaireListView.as_view(), name='inventaire'),
     path('nouveau/', NouveauMaterielView.as_view(), name='nouveau_materiel'),
