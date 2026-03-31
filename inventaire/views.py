@@ -943,7 +943,7 @@ def generer_fiche_don_pdf(request, beneficiaire_id, materiel_ids_str):
 
     # En-tête
     elements.append(Paragraph("FICHE DE DON DE MATÉRIEL INFORMATIQUE", title_style))
-    elements.append(Paragraph("Association de Recyclage Numérique Solidaire", sub_title_style))
+    elements.append(Paragraph("Atelier SICTOM / LBAO / CBE", sub_title_style))
     elements.append(Spacer(1, 0.5*cm))
 
     # Infos Bénéficiaire
