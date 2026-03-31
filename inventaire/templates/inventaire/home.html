@@ -35,12 +35,12 @@
 
         <!-- Carte En Attente Pièces -->
         <div class="col-md-3">
-            <div class="card text-white bg-warning shadow-sm h-100" style="opacity: 0.9;">
+            <div class="card text-white bg-danger shadow-sm h-100" style="opacity: 0.9;">
                 <div class="card-body text-center">
                     <h5 class="card-title">En Attente Pièces</h5>
                     <p class="display-4 fw-bold">{{ stats_ordis.en_attente_pieces }}</p>
-                    <p class="card-text small">PC sains en attente de RAM/Disque</p>
-                    <a href="{% url 'inventaire' %}?statut=ATTENTE_PIECES" class="btn btn-sm btn-light text-warning fw-bold">Voir la liste</a>
+                    <p class="card-text small">PC en attente de RAM/Disque</p>
+                    <a href="{% url 'inventaire' %}?statut=ATTENTE_PIECES" class="btn btn-sm btn-light text-danger fw-bold">Voir la liste</a>
                 </div>
             </div>
         </div>
@@ -123,10 +123,11 @@
                             <td>
                                 {% if materiel.statut == 'ENTREE' %}<span class="badge bg-warning text-dark">À diagnostiquer</span>
                                 {% elif materiel.statut == 'DIAGNOSTIC' %}<span class="badge bg-info text-dark">Diagnostic</span>
+                                {% elif materiel.statut == 'ATTENTE_PIECES' %}<span class="badge bg-danger">Attente de pièces</span>
                                 {% elif materiel.statut == 'REPARATION' %}<span class="badge bg-primary">En réparation</span>
                                 {% elif materiel.statut == 'PRET_A_DON' %}<span class="badge bg-success">Prêt à donner</span>
                                 {% elif materiel.statut == 'DONNE' %}<span class="badge bg-secondary">Donné</span>
-                                {% elif materiel.statut == 'RECYCLAGE' %}<span class="badge bg-danger">Recyclage</span>
+                                {% elif materiel.statut == 'RECYCLAGE' %}<span class="badge bg-secondary">Recyclage</span>
                                 {% else %}<span class="badge bg-light text-dark">{{ materiel.get_statut_display }}</span>
                                 {% endif %}
                             </td>
