@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import HomePageView, InventaireListView, NouveauMaterielView, ajax_create_marque, imprimer_planche_etiquettes, search_by_inv, modifier_materiel, CustomLoginView, CustomLogoutView, rapport_activite_pdf
+from .views import HomePageView, InventaireListView, NouveauMaterielView, ajax_create_marque, imprimer_planche_etiquettes, search_by_inv, modifier_materiel, CustomLoginView, CustomLogoutView, rapport_activite_pdf, faire_un_don
 
 
 
@@ -17,6 +17,7 @@ urlpatterns = [
     path('search-by-inv/<str:numero_inv>/', search_by_inv, name='search_by_inv'),
     path('modifier/<int:pk>/', modifier_materiel, name='modifier_materiel'),
     path('rapport-activite/', rapport_activite_pdf, name='rapport_activite'),
+    path('faire-un-don/', faire_un_don, name='faire_un_don'),
     # path('etiquette/<int:pk>/', views.generer_etiquette_qr, name='etiquette_qr'),   
 ]
 

@@ -23,8 +23,8 @@ from django.urls import reverse_lazy
 from django.db.models import Count, Sum, Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque, Intervention
-from .forms import NouveauMaterielForm, DiagnosticRepaForm, DisqueFormSet
+from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque, Intervention, Beneficiaire
+from .forms import NouveauMaterielForm, DiagnosticRepaForm, DisqueFormSet, BeneficiaireForm
 from .decorators import benevole_actif_required
 from .mixins import AuthBenevoleMixin
 
@@ -596,8 +596,8 @@ def modifier_materiel(request, pk):
 
 
 
-"""====== modifier_materiel ===================================================
-    Vue commune au diagnostic et à la réparation / configuration d'ordis.
+"""====== rapport_activite_pdf ================================================
+    Exemple de rapport d'activité (démo).
 ============================================================================"""
 
 @login_required
@@ -757,3 +757,104 @@ def rapport_activite_pdf(request):
     
     doc.build(elements)
     return response
+
+
+
+"""====== faire_un_don ========================================================
+    Vue pour donner une configuration.
+============================================================================"""
+
+@login_required
+def faire_un_don(request):
+    # 1. Gestion du Beneficiaire (Recherche ou Création)
+    beneficiaire = None
+    benef_form = BeneficiaireForm()
+    
+    # Si on soumet le formulaire de création/recherche
+    if request.method == 'POST' and 'action_benef' in request.POST:
+        nom = request.POST.get('nom')
+        prenom = request.POST.get('prenom')
+        if nom and prenom:
+            # Essai de recherche
+            benefs = Beneficiaire.objects.filter(nom__icontains=nom, prenom__icontains=prenom)
+            if benefs.exists():
+                beneficiaire = benefs.first()
+                messages.info(request, f"Bénéficiaire trouvé : {beneficiaire}")
+            else:
+                # Création immédiate (simplifié pour la démo)
+                beneficiaire = Beneficiaire.objects.create(nom=nom, prenom=prenom)
+                messages.success(request, f"Nouveau bénéficiaire créé : {beneficiaire}")
+        else:
+            messages.error(request, "Nom et Prénom requis.")
+
+    # 2. Gestion du Matériel (Ajout au panier via Session)
+    # On utilise la session Django pour stocker temporairement la liste des IDs à donner
+    panier_don = request.session.get('panier_don', [])
+    
+    if request.method == 'POST' and 'action_ajout_materiel' in request.POST:
+        inv_number = request.POST.get('numero_inventaire')
+        try:
+            materiel = Materiel.objects.get(numero_inventaire=inv_number)
+            if materiel.statut != 'PRET_A_DON':
+                messages.error(request, f"Le matériel {inv_number} n'est pas prêt à être donné (Statut: {materiel.statut}).")
+            elif materiel.beneficiaire:
+                messages.error(request, f"Le matériel {inv_number} est déjà donné !")
+            else:
+                if inv_number not in panier_don:
+                    panier_don.append(inv_number)
+                    request.session['panier_don'] = panier_don
+                    messages.success(request, f"{inv_number} ajouté au lot de don.")
+                else:
+                    messages.warning(request, f"{inv_number} est déjà dans le lot.")
+        except Materiel.DoesNotExist:
+            messages.error(request, f"Numéro d'inventaire {inv_number} introuvable.")
+            
+        return redirect('faire_un_don')
+
+    # 3. Récupération des objets du panier pour affichage
+    materiels_a_donner = Materiel.objects.filter(numero_inventaire__in=panier_don) if panier_don else []
+
+    # 4. Validation Finale du Don
+    if request.method == 'POST' and 'action_valider_don' in request.POST:
+        if not beneficiaire:
+            messages.error(request, "Veuillez sélectionner ou créer un bénéficiaire avant de valider.")
+            return redirect('faire_un_don')
+        
+        if not panier_don:
+            messages.error(request, "Le lot de don est vide.")
+            return redirect('faire_un_don')
+            
+        # Boucle de validation
+        for inv in panier_don:
+            m = Materiel.objects.get(numero_inventaire=inv)
+            m.statut = 'DONNE'
+            m.beneficiaire = beneficiaire
+            m.date_sortie = timezone.now()
+            # Poids de sortie = Poids d'entrée si non renseigné
+            if not m.poids_sortie_kg:
+                m.poids_sortie_kg = m.poids_entree_kg
+            m.save()
+            
+            # Historique
+            from .models import Intervention
+            Intervention.objects.create(
+                materiel=m,
+                benevole=request.user,
+                type_action='SORTIE',
+                commentaire=f"Donné à {beneficiaire.prenom} {beneficiaire.nom}"
+            )
+            
+        # Nettoyage du panier
+        request.session['panier_don'] = []
+        messages.success(request, f"Don validé avec succès pour {beneficiaire} ! ({len(panier_don)} matériels)")
+        
+        # Ici, on pourrait rediriger vers un PDF de fiche de don
+        return redirect('home')
+
+    context = {
+        'beneficiaire': beneficiaire,
+        'benef_form': benef_form,
+        'panier_don': materiels_a_donner,
+        'nb_materiels': len(panier_don),
+    }
+    return render(request, 'inventaire/faire_un_don.html', context)

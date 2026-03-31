@@ -1,0 +1,100 @@
+{% extends 'inventaire/parts/menu.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}
+    Don d'une configuration
+{% endblock %}
+
+{% block contenu %}
+<div class="row">
+    <!-- COLONNE GAUCHE : Bénéficiaire et Ajout -->
+    <div class="col-md-7">
+        
+        <!-- 1. Recherche / Création Bénéficiaire -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">👤 Bénéficiaire du don</div>
+            <div class="card-body">
+                {% if beneficiaire %}
+                    <div class="alert alert-success d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ beneficiaire.prenom }} {{ beneficiaire.nom }}</strong><br>
+                            <small>{{ beneficiaire.email|default:"Pas d'email" }} - {{ beneficiaire.telephone|default:"Pas de téléphone" }}</small>
+                        </div>
+                        <a href="{% url 'faire_un_don' %}" class="btn btn-sm btn-outline-danger">Changer</a>
+                    </div>
+                {% else %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action_benef" value="1">
+                        <div class="row g-2">
+                            <div class="col"><input type="text" name="prenom" class="form-control" placeholder="Prénom" required></div>
+                            <div class="col"><input type="text" name="nom" class="form-control" placeholder="Nom" required></div>
+                            <div class="col-auto"><button type="submit" class="btn btn-primary">Rechercher / Créer</button></div>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 2. Ajout de Matériel -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">📦 Ajouter du matériel au lot</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action_ajout_materiel" value="1">
+                    <div class="input-group">
+                        <input type="text" name="numero_inventaire" class="form-control" placeholder="Numéro d'inventaire (ex: INV-0042)" required>
+                        <button type="submit" class="btn btn-success">Ajouter</button>
+                    </div>
+                    <small class="text-muted">Le matériel doit être au statut "Prêt à donner".</small>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- COLONNE DROITE : Récapitulatif du Lot -->
+    <div class="col-md-5">
+        <div class="card border-info mb-4">
+            <div class="card-header bg-info text-white d-flex justify-content-between">
+                <span>🛒 Lot de don en cours</span>
+                <span class="badge bg-light text-info">{{ nb_materiels }} articles</span>
+            </div>
+            <div class="card-body">
+                {% if panier_don %}
+                    <ul class="list-group list-group-flush">
+                        {% for m in panier_don %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ m.numero_inventaire }}</strong><br>
+                                <small>{{ m.get_type_materiel_display }} - {{ m.marque }} {{ m.modele }}</small>
+                            </div>
+                            <span class="badge bg-success rounded-pill">{{ m.get_statut_display }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <hr>
+                    
+                    {% if beneficiaire %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action_valider_don" value="1">
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                ✅ Valider le Don à {{ beneficiaire.prenom }}
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning small">
+                            Veuillez sélectionner un bénéficiaire ci-contre pour valider le don.
+                        </div>
+                    {% endif %}
+                    
+                {% else %}
+                    <p class="text-muted text-center py-4">Le lot est vide.<br>Ajoutez des numéros d'inventaire.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
