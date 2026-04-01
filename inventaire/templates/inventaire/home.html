@@ -110,13 +110,46 @@
                                 <a href="{% url 'search_by_inv' materiel.numero_inventaire %}" class="text-decoration-none">{{ materiel.numero_inventaire }}</a>
                             </td>
                             <td>
-                                {% if materiel.type_materiel == 'PC' %}🖥️
-                                {% elif materiel.type_materiel == 'ECRAN' %}🖼️
-                                {% else %}🖱️{% endif %}
-                                {{ materiel.get_type_materiel_display }}
+                            <!-- Ligne 1 : Type Principal (avec icône) -->
+                                <div class="fw-normal">
+                                    {% if materiel.type_materiel == 'PC' %}
+                                        {% if materiel.ordinateur.categorie == 'PORTABLE' %}💻
+                                        {% else %}🖥️ 
+                                        {% endif %}{{ materiel.get_type_materiel_display }}
+                                    {% elif materiel.type_materiel == 'ECRAN' %}
+                                        🖼️ {{ materiel.get_type_materiel_display }}
+                                    {% elif materiel.type_materiel == 'PERIPH' %}
+                                        {% if materiel.peripherique.type_periph == "SOURIS" %}🖱️
+                                        {% elif materiel.peripherique.type_periph == "CLAVIER" %}⌨️ 
+                                        {% elif materiel.peripherique.type_periph == "ENCEINTES" %}🔈
+                                        {% elif materiel.peripherique.type_periph == "WEBCAM" %}📹
+                                        {% elif materiel.peripherique.type_periph == "CASQUE" %}🎧 
+                                        {% endif %} {{ materiel.get_type_materiel_display }}                                                                             
+                                    {% else %}
+                                        {{ materiel.get_type_materiel_display }}
+                                    {% endif %}
+                                </div>
+
+                                <!-- Ligne 2 : Sous-type (Spécifique) -->
+                                <small class="text-muted">
+                                    {% if materiel.type_materiel == 'PERIPH' and materiel.peripherique %}
+                                        {{ materiel.peripherique.get_type_periph_display }}
+                                        
+                                    {% elif materiel.type_materiel == 'ECRAN' and materiel.ecran %}
+                                        {{ materiel.ecran.diagonale_pouces }} pouces
+                                        
+                                    {% elif materiel.type_materiel == 'PC' and materiel.ordinateur %}
+                                        {{ materiel.ordinateur.get_categorie_display }}
+                                        {% if materiel.ordinateur.ram_go %} - {{ materiel.ordinateur.ram_go }}Go RAM{% endif %}
+                                        
+                                    {% else %}
+                                        &nbsp;
+                                    {% endif %}
+                                </small>
                             </td>
                             <td>
-                                {{ materiel.marque|default:"Inconnue" }} {{ materiel.modele|truncatechars:20 }}
+                                <strong>{{ materiel.marque.nom|default:"Inconnue" }}</strong><br>
+                                <small class="text-muted">{{ materiel.modele|truncatechars:25 }}</small>
                             </td>
                             <td>{{ materiel.date_entree|date:"d/m/Y" }}</td>
                             <td>{{ materiel.poids_entree_kg|floatformat:2 }} kg</td>

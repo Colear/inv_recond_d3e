@@ -94,7 +94,11 @@ class HomePageView(AuthBenevoleMixin, TemplateView):
         )['total_kg'] or 0
 
         # --- 3. Derniers matériels ajoutés (tous types) ---
-        derniers_materiaux = Materiel.objects.select_related('marque', 'benevole_en_charge').order_by('-numero_inventaire')[:5]
+        derniers_materiaux = Materiel.objects.select_related('marque', 
+                                                             'benevole_en_charge',
+                                                             'ordinateur',
+                                                             'ecran',
+                                                             'peripherique').order_by('-numero_inventaire')[:5]
 
         # --- 4. Injection dans le contexte ---
         context['stats_ordis'] = stats_ordis
@@ -122,7 +126,12 @@ class InventaireListView(AuthBenevoleMixin, ListView):
 
     def get_queryset(self):
         # On part de la base : tous les matériels ordonnés par date d'entrée (plus récent en premier)
-        queryset = Materiel.objects.select_related('marque', 'benevole_en_charge', 'beneficiaire').order_by('-numero_inventaire')
+        queryset = Materiel.objects.select_related('marque', 
+                                                   'benevole_en_charge', 
+                                                   'beneficiaire',
+                                                   'ordinateur',
+                                                   'ecran',
+                                                   'peripherique').order_by('-numero_inventaire')
 
         # --- FILTRE : RECHERCHE TEXTE ---
         search_query = self.request.GET.get('q', '')
@@ -638,7 +647,7 @@ def rapport_activite_pdf(request):
     title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=24, textColor=colors.darkblue, spaceAfter=30, alignment=TA_CENTER)
     subtitle_style = ParagraphStyle('CustomSubtitle', parent=styles['Normal'], fontSize=14, textColor=colors.grey, spaceAfter=20, alignment=TA_CENTER)
     
-    elements.append(Paragraph(f"Rapport d'Activité Mensuel - Recyclage Numérique", title_style))
+    elements.append(Paragraph(f"Rapport d'activité mensuel - Atelier reconditionnement CBE / LBAO / SICTOM", title_style))
     elements.append(Paragraph(f"Période : {debut_mois.strftime('%d/%m/%Y')} au {aujourdhui.strftime('%d/%m/%Y')}", subtitle_style))
     
     # --- KPIs (Indicateurs Clés)
@@ -752,7 +761,7 @@ def rapport_activite_pdf(request):
     
     # Footer
     elements.append(Spacer(1, 2*cm))
-    footer = Paragraph(f"<i>Généré le {aujourdhui.strftime('%d/%m/%Y à %H:%M')} par l'outil de gestion interne.</i>", styles['Normal'])
+    footer = Paragraph(f"<i>Généré le {aujourdhui.strftime('%d/%m/%Y à %H:%M')}.</i>", styles['Normal'])
     elements.append(footer)
     
     doc.build(elements)
