@@ -15,7 +15,7 @@ from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.barcharts import VerticalBarChart
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView, ListView, CreateView
-from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
@@ -275,6 +275,11 @@ def ajax_create_marque(request):
 @benevole_actif_required
 def imprimer_planche_etiquettes(request):
 
+    # on veut réserver cette action aux responsables, et pas de droit spécifique sur les
+    # étiquettes => test de la possibilité de changer un bénéficiaire
+    if not request.user.has_perm('inventaire.change_beneficiaire'):
+        raise PermissionDenied("Vous n'avez pas la permission d'imprimer des étiquettes.")
+
     # 1. Définir la plage d'étiquettes à imprimer
     # On prend les 10 prochains numéros à partir du dernier existant + 1
     # Ou vous pouvez passer des paramètres GET ?start=100&end=110
@@ -400,6 +405,10 @@ def search_by_inv(request, numero_inv):
 @benevole_actif_required
 def modifier_materiel(request, pk):
     materiel = get_object_or_404(Materiel, pk=pk)
+    
+    # On vérifie que l'utilisateur peut modifier un matériel
+    if not request.user.has_perm('inventaire.change_materiel'):
+        raise PermissionDenied("Vous n'avez pas la permission de modifier du matériel.")
     
     # Sécurité : Vérifier que c'est un ordinateur
     if not hasattr(materiel, 'ordinateur') or materiel.ordinateur is None:
@@ -623,6 +632,11 @@ def modifier_materiel(request, pk):
 @login_required
 def rapport_activite_pdf(request):
 
+    # on veut réserver cette action aux responsables, et pas de droit spécifique sur les
+    # rapports => test de la possibilité de changer un bénéficiaire
+    if not request.user.has_perm('inventaire.change_beneficiaire'):
+        raise PermissionDenied("Vous n'avez pas la permission pour générer des rapports.")
+    
     # ===== 1. Récupération des données
 
     # Déterminer la période (Mois précédent)
@@ -786,9 +800,10 @@ def rapport_activite_pdf(request):
 
 @login_required
 def faire_un_don(request):
-    print(f"--- DÉBUT VUE FAIRE_UN_DON ---")
-    print(f"Méthode: {request.method}")
-    print(f"Session avant: {request.session.items()}")
+
+    # on vérifie qu'il s'agit d'un responsable pouvant agir sur les bénéficiaires
+    if not request.user.has_perm('inventaire.change_beneficiaire'):
+        raise PermissionDenied("Vous n'avez pas la permission pour donner du matériel.")
 
     # 1. Gestion de la session Bénéficiaire
     benef_id = request.session.get('don_beneficiaire_id')
@@ -935,6 +950,11 @@ def faire_un_don(request):
 
 @login_required
 def generer_fiche_don_pdf(request, beneficiaire_id, materiel_ids_str):
+
+    # on vérifie qu'il s'agit d'un responsable pouvant agir sur les bénéficiaires
+    if not request.user.has_perm('inventaire.change_beneficiaire'):
+        raise PermissionDenied("Vous n'avez pas la permission pour donner du matériel.")
+
     """
     Génère la fiche de don PDF.
     materiel_ids_str : chaîne de caractères "1,2,3" contenant les IDs des matériels donnés.
