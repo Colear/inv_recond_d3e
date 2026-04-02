@@ -15,6 +15,7 @@ from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.barcharts import VerticalBarChart
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView, ListView, CreateView
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
@@ -71,6 +72,9 @@ class CustomLogoutView(LogoutView):
 class HomePageView(AuthBenevoleMixin, TemplateView):
     template_name = "inventaire/home.html"
 
+    # permissions nécessaires pour afficher la vue
+    permission_required = 'inventaire.view_materiel'
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
@@ -123,6 +127,9 @@ class InventaireListView(AuthBenevoleMixin, ListView):
     template_name = 'inventaire/inventaire_list.html'
     context_object_name = 'materiaux'
     paginate_by = 20  # Nombre d'éléments par page
+
+    # permissions nécessaires pour afficher la vue
+    permission_required = 'inventaire.view_materiel'
 
     def get_queryset(self):
         # On part de la base : tous les matériels ordonnés par date d'entrée (plus récent en premier)
@@ -181,10 +188,14 @@ class InventaireListView(AuthBenevoleMixin, ListView):
 ============================================================================"""
 
 class NouveauMaterielView(AuthBenevoleMixin, CreateView): 
+
     model = Materiel # On utilise le parent pour le formulaire, mais on sauvera dans l'enfant
     form_class = NouveauMaterielForm
     template_name = 'inventaire/nouveau_materiel.html'
     success_url = '/inventaire' # Redirige vers la liste après succès
+
+    # permissions nécessaires pour afficher la vue
+    permission_required = 'inventaire.add_materiel'
 
     def form_valid(self, form):
         type_materiel = form.cleaned_data['type_materiel']
@@ -1043,3 +1054,4 @@ def generer_fiche_don_pdf(request, beneficiaire_id, materiel_ids_str):
 
     doc.build(elements)
     return response
+
