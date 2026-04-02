@@ -250,9 +250,14 @@ class Materiel(models.Model):
         else:
             return 'DON'
 
-    # Tri par défaut selon la date d'entrée
     class Meta:
+        # Tri par défaut selon la date d'entrée
         ordering = ['-date_entree']
+        # Permissions spécifiques qui vont s'ajouter aux CRUDs
+        permissions = [
+            ("can_print_labels", "Peut imprimer les étiquettes et rapports"),
+            ("can_validate_don", "Peut valider les dons aux bénéficiaires"), # si l'on veut affiner les droits des admins
+        ]
 
 
 
