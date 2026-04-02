@@ -22,9 +22,9 @@ from django.utils import timezone
 from django.urls import reverse_lazy
 # from django.conf import settings
 from django.db.models import Count, Sum, Q
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.views import LoginView, LogoutView
-from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque, Intervention, Beneficiaire
+from .models import Ordinateur, Ecran, Peripherique, Materiel, Marque, Intervention, Beneficiaire, Benevole
 from .forms import NouveauMaterielForm, DiagnosticRepaForm, DisqueFormSet, BeneficiaireForm
 from .decorators import benevole_actif_required
 from .mixins import AuthBenevoleMixin
@@ -273,12 +273,8 @@ def ajax_create_marque(request):
 
 @login_required
 @benevole_actif_required
+@permission_required('inventaire.can_print_labels', raise_exception=True)
 def imprimer_planche_etiquettes(request):
-
-    # on veut réserver cette action aux responsables, et pas de droit spécifique sur les
-    # étiquettes => test de la possibilité de changer un bénéficiaire
-    if not request.user.has_perm('inventaire.change_beneficiaire'):
-        raise PermissionDenied("Vous n'avez pas la permission d'imprimer des étiquettes.")
 
     # 1. Définir la plage d'étiquettes à imprimer
     # On prend les 10 prochains numéros à partir du dernier existant + 1
@@ -377,6 +373,7 @@ def imprimer_planche_etiquettes(request):
 
 @login_required
 @benevole_actif_required
+@permission_required('inventaire.change_materiel', raise_exception=True)
 def search_by_inv(request, numero_inv):
 
     try:
@@ -403,12 +400,9 @@ def search_by_inv(request, numero_inv):
 
 @login_required
 @benevole_actif_required
+@permission_required('inventaire.change_materiel', raise_exception=True)
 def modifier_materiel(request, pk):
     materiel = get_object_or_404(Materiel, pk=pk)
-    
-    # On vérifie que l'utilisateur peut modifier un matériel
-    if not request.user.has_perm('inventaire.change_materiel'):
-        raise PermissionDenied("Vous n'avez pas la permission de modifier du matériel.")
     
     # Sécurité : Vérifier que c'est un ordinateur
     if not hasattr(materiel, 'ordinateur') or materiel.ordinateur is None:
@@ -630,13 +624,10 @@ def modifier_materiel(request, pk):
 ============================================================================"""
 
 @login_required
+@benevole_actif_required
+@permission_required('inventaire.can_print_labels', raise_exception=True)
 def rapport_activite_pdf(request):
-
-    # on veut réserver cette action aux responsables, et pas de droit spécifique sur les
-    # rapports => test de la possibilité de changer un bénéficiaire
-    if not request.user.has_perm('inventaire.change_beneficiaire'):
-        raise PermissionDenied("Vous n'avez pas la permission pour générer des rapports.")
-    
+  
     # ===== 1. Récupération des données
 
     # Déterminer la période (Mois précédent)
@@ -799,11 +790,9 @@ def rapport_activite_pdf(request):
 ============================================================================"""
 
 @login_required
+@benevole_actif_required
+@permission_required('inventaire.can_validate_don', raise_exception=True)
 def faire_un_don(request):
-
-    # on vérifie qu'il s'agit d'un responsable pouvant agir sur les bénéficiaires
-    if not request.user.has_perm('inventaire.change_beneficiaire'):
-        raise PermissionDenied("Vous n'avez pas la permission pour donner du matériel.")
 
     # 1. Gestion de la session Bénéficiaire
     benef_id = request.session.get('don_beneficiaire_id')
@@ -949,11 +938,9 @@ def faire_un_don(request):
 ============================================================================"""
 
 @login_required
+@benevole_actif_required
+@permission_required('inventaire.can_validate_don', raise_exception=True)
 def generer_fiche_don_pdf(request, beneficiaire_id, materiel_ids_str):
-
-    # on vérifie qu'il s'agit d'un responsable pouvant agir sur les bénéficiaires
-    if not request.user.has_perm('inventaire.change_beneficiaire'):
-        raise PermissionDenied("Vous n'avez pas la permission pour donner du matériel.")
 
     """
     Génère la fiche de don PDF.
