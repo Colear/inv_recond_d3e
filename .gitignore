@@ -14,3 +14,6 @@ lib/
 # lib64 est un lien symbolique sur lib
 lib64
 pyvenv.cfg
+
+#Trucs obsolètes
+formulaires_old/
