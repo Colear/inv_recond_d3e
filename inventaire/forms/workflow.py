@@ -73,53 +73,144 @@ class NouveauMaterielForm(forms.ModelForm):
     Formulaire commun pour le diagnostic et la réparation
 ============================================================================"""
 
-# --- 1. Formulaire Principal (Diagnostic + Répa + Linux) ---
 class DiagnosticRepaForm(forms.ModelForm):
+    
+    # Champs virtuels pour aider à la validation conditionnelle (optionnel, mais utile)
+    # On pourra s'en servir dans le clean() pour savoir quel bouton a été cliqué si besoin
+    
     class Meta:
         model = Ordinateur
-        # On sélectionne les champs pertinents pour cette phase
+        # On inclut TOUS les champs nécessaires (Hardware + Software)
         fields = [
-            'cpu', 'cpu_score', 
-            'ram_go', 'ram_nb_barrettes', 'ram_type',
+            # Hardware - Diagnostic
+            'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type',
             'a_carte_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
-            'rapport_diagnostic', 
+            'rapport_diagnostic',
+            # Hardware - Réparation
             'pieces_changees', 'cout_reparation',
+            'a_alimentation', 'etat_batterie', # Champs Portables
+            # Software - Configuration
             'linux_installe', 'linux_distro', 'date_maj_os',
             'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
-            'statut' # Important pour savoir où on en est
+            'statut' 
         ]
         widgets = {
-            'cpu': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Intel i5-8500'}),
-            'cpu_score': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 8500'}),
-            'ram_go': forms.NumberInput(attrs={'class': 'form-control'}),
-            'ram_nb_barrettes': forms.NumberInput(attrs={'class': 'form-control'}),
-            'ram_type': forms.Select(attrs={'class': 'form-select'}),
-            'a_carte_wifi': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'a_carte_graphique_dediee': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'rapport_diagnostic': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Problèmes constatés...'}),
-            'pieces_changees': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'cout_reparation': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'cpu': forms.TextInput(attrs={'placeholder': 'Ex: Intel i5-8500'}),
+            'rapport_diagnostic': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Problèmes constatés, tests...'}),
+            'pieces_changees': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Liste des pièces remplacées'}),
+            'etat_batterie': forms.Select(attrs={'class': 'form-select'}),
             'linux_distro': forms.Select(attrs={'class': 'form-select'}),
-            'date_maj_os': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'logiciel_photo': forms.Select(attrs={'class': 'form-select'}),
-            'media_player': forms.Select(attrs={'class': 'form-select'}),
-            'statut': forms.Select(attrs={'class': 'form-select fw-bold'}), # Pour changer le statut facilement
+            'date_maj_os': forms.DateInput(attrs={'type': 'date'}),
         }
 
     def __init__(self, *args, **kwargs):
+        # Récupérer l'action (bouton cliqué) si passée en argument par la vue
+        self.action = kwargs.pop('action', None) 
         super().__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_id = 'diagnostic-form'
         
-        # Rendre ces champs optionnels au niveau du formulaire
-        # Ainsi, même s'ils sont vides ou absents, la validation Python passera.
-        self.fields['cout_reparation'].required = False
-        self.fields['statut'].required = False
-        # On peut même désactiver le select de statut dans le HTML pour forcer l'usage des boutons
-        self.fields['statut'].widget.attrs['readonly'] = True 
-        self.fields['statut'].help_text = "Ce champ est géré automatiquement par les boutons d'action."
+        # Définition de la mise en page (Layout)
+        self.helper.layout = Layout(
+            # =================================================================
+            # BLOC 1 : HARDWARE (Diagnostic + Réparation Physique)
+            # =================================================================
+            Fieldset("🔍 Diagnostic & Réparation Hardware",
+                Row(
+                    Column('cpu', css_class='col-md-6'),
+                    Column('cpu_score', css_class='col-md-6'),
+                ),
+                Row(
+                    Column('ram_go', css_class='col-md-3'),
+                    Column('ram_nb_barrettes', css_class='col-md-3'),
+                    Column('ram_type', css_class='col-md-3'),
+                    Column(FloatingField('a_carte_wifi', template='bootstrap5/layout/checkboxselectmultiple.html'), css_class='col-md-3'),
+                ),
+                
+                # Section spécifique PC Portable (à afficher/masquer en JS si besoin, ou toujours visible)
+                Div(
+                    HTML("<h6 class='mt-3 text-primary'>Spécifique PC Portable</h6>"),
+                    Row(
+                        Column('a_alimentation', css_class='col-md-6'),
+                        Column('etat_batterie', css_class='col-md-6'),
+                    ),
+                    css_class='p-3 bg-light border rounded mt-2',
+                    id='laptop-section' # ID pour le cibler en JS
+                ),
+
+                Row(
+                    Column('rapport_diagnostic', css_class='col-12'),
+                ),
+                
+                # Réparation (Déplacé ici depuis la section Software)
+                Div(
+                    HTML("<h6 class='mt-4 text-warning'>🛠️ Réparation Matérielle</h6>"),
+                    Row(
+                        Column('pieces_changees', css_class='col-md-8'),
+                        Column('cout_reparation', css_class='col-md-4'),
+                    ),
+                    css_class='mt-3 p-3 border-top'
+                ),
+            ),
+
+            # =================================================================
+            # BLOC 2 : SOFTWARE (Configuration Linux)
+            # =================================================================
+            Fieldset("🐧 Configuration Logicielle (Linux)",
+                Row(
+                    Column('linux_installe', css_class='col-md-12'),
+                ),
+                Div(
+                    Row(
+                        Column('linux_distro', css_class='col-md-4'),
+                        Column('date_maj_os', css_class='col-md-4'),
+                        Column('onlyoffice_installe', css_class='col-md-4'),
+                    ),
+                    Row(
+                        Column('logiciel_photo', css_class='col-md-4'),
+                        Column('media_player', css_class='col-md-4'),
+                        Column('firefox_configure', css_class='col-md-4'),
+                    ),
+                    css_class='mt-2',
+                    id='linux-section' # ID pour le cibler en JS
+                ),
+            ),
+            
+            # Champ caché pour le statut (géré par les boutons de la vue)
+            'statut',
+
+            # Note: Les boutons d'action (Valider, Attente, etc.) restent dans le template HTML
+            # pour garder la main sur leur placement et leur style.
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
         
-        # Optionnel : mettre une valeur initiale visuelle pour cout_reparation
-        if self.instance.pk and self.instance.cout_reparation == 0:
-            self.fields['cout_reparation'].initial = 0
+        # Récupération du statut cible (si la vue le passe dans le form ou via POST)
+        # Astuce: On peut regarder dans self.data directement
+        action = self.data.get('action')
+        
+        # Définition des actions qui nécessitent un diagnostic COMPLET
+        actions_completes = ['validate_diag_repa', 'validate_repa'] 
+        
+        if action in actions_completes:
+            # Si on veut passer en Réparation/Config, les champs Hardware sont OBLIGATOIRES
+            errors = []
+            if not cleaned_data.get('cpu'):
+                errors.append("Le processeur (CPU) est obligatoire pour valider le diagnostic.")
+            if not cleaned_data.get('ram_go'):
+                errors.append("La quantité de RAM est obligatoire pour valider le diagnostic.")
+            if not cleaned_data.get('rapport_diagnostic'):
+                errors.append("Un rapport de diagnostic est obligatoire.")
+            
+            if errors:
+                raise forms.ValidationError(errors)
+        
+        # Si l'action est 'wait_parts' ou 'save_exit', on ne bloque pas (champs optionnels)
+        
+        return cleaned_data
 
 
 

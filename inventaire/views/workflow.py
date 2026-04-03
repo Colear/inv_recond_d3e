@@ -115,7 +115,8 @@ def modifier_materiel(request, pk):
     redirect_to_inventory = False
 
     if request.method == 'POST':
-        form = DiagnosticRepaForm(request.POST, instance=ordinateur)
+        action = request.POST.get('action')
+        form = DiagnosticRepaForm(request.POST, instance=ordinateur, action=action)
         formset = DisqueFormSet(request.POST, instance=ordinateur)
         
         if form.is_valid() and formset.is_valid():
