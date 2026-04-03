@@ -1,5 +1,8 @@
 from django import forms
 from django.forms import inlineformset_factory
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Row, Column, Fieldset, Submit, HTML, Div
+from crispy_bootstrap5.bootstrap5 import FloatingField
 from ..models import Materiel, Marque, Ordinateur, Peripherique, DisqueDur
 
 
