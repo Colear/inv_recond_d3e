@@ -1,5 +1,18 @@
 from django.urls import path
-from .views import HomePageView, InventaireListView, NouveauMaterielView, ajax_create_marque, imprimer_planche_etiquettes, search_by_inv, modifier_materiel, CustomLoginView, CustomLogoutView, rapport_activite_pdf, faire_un_don, generer_fiche_don_pdf
+from .views import (
+    HomePageView, 
+    InventaireListView, 
+    NouveauMaterielView, 
+    ajax_create_marque, 
+    imprimer_planche_etiquettes, 
+    search_by_inv, 
+    modifier_materiel, 
+    CustomLoginView, 
+    CustomLogoutView, 
+    rapport_activite_pdf, 
+    faire_un_don, 
+    generer_fiche_don_pdf
+)
 
 
 

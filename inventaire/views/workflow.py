@@ -1,97 +1,12 @@
 from decimal import Decimal
-from django.views.generic import CreateView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from ..forms import NouveauMaterielForm, DiagnosticRepaForm, DisqueFormSet
-from ..mixins import AuthBenevoleMixin
+from ..forms import DiagnosticRepaForm, DisqueFormSet
 from ..decorators import benevole_actif_required
-from ..models import Ordinateur, Ecran, Peripherique, Materiel, Marque, Benevole, Intervention
-
-
-
-"""====== NouveauMateriel =====================================================
-    Formulaire de saisie rapide d'un nouveau matériel.
-    Contient également une vue Ajax pour ajouter une marque à la volée.
-============================================================================"""
-
-class NouveauMaterielView(AuthBenevoleMixin, CreateView): 
-
-    model = Materiel # On utilise le parent pour le formulaire, mais on sauvera dans l'enfant
-    form_class = NouveauMaterielForm
-    template_name = 'inventaire/nouveau_materiel.html'
-    success_url = '/inventaire' # Redirige vers la liste après succès
-
-    # permissions nécessaires pour afficher la vue
-    permission_required = 'inventaire.add_materiel'
-
-    def form_valid(self, form):
-        type_materiel = form.cleaned_data['type_materiel']
-        categorie_pc = form.cleaned_data.get('categorie_pc')
-        categorie_periph = form.cleaned_data.get('categorie_periph')
-        
-        # 1. Création de l'instance en mémoire (pas encore en base)
-        instance = form.save(commit=False)
-        instance.date_entree = timezone.now().date()
-        
-        # 2. Génération du numéro
-        instance.numero_inventaire = instance.generer_numero_inventaire()
-        
-        # 3. Sauvegarde initiale (Crée la ligne avec un ID)
-        # On essaie de sauver normalement d'abord
-        instance.save()
-        
-        # 4. Création de l'enfant (Nécessite que le parent ait un ID)
-        if type_materiel == 'PC':
-            if not categorie_pc:
-                return self.form_invalid(form)
-            Ordinateur.objects.create(materiel_ptr=instance, categorie=categorie_pc)
-        elif type_materiel == 'ECRAN':
-            Ecran.objects.create(materiel_ptr=instance)
-        elif type_materiel == 'PERIPH':
-            if not categorie_periph:
-                return self.form_invalid(form)
-            Peripherique.objects.create(materiel_ptr=instance, type_periph=categorie_periph)
-            
-        # 5. CORRECTION GLOBALE (Le "Silver Bullet")
-        # On force l'écriture de TOUS les champs critiques en une seule requête SQL
-        # Cela contourne tous les problèmes de commit=False, editable, etc.
-        Materiel.objects.filter(pk=instance.pk).update(
-            numero_inventaire=instance.numero_inventaire,
-            poids_entree_kg=instance.poids_entree_kg,
-            provenance=instance.provenance,
-            marque_id=instance.marque_id, # Attention : utiliser l'ID pour une ForeignKey
-            modele=instance.modele,
-            type_materiel=instance.type_materiel,
-            date_entree=instance.date_entree,
-            statut=instance.statut,
-            benevole_en_charge_id=instance.benevole_en_charge_id,
-        )
-
-        return redirect(self.success_url)
-
-
-
-# --- Vue AJAX pour permettre l'ajout de marque à la volée ---
-
-def ajax_create_marque(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'success': False, 'error': 'Non authentifié'})
-    
-    try:
-        if not request.user.profile_benevole.actif and not request.user.is_superuser:
-            return JsonResponse({'success': False, 'error': 'Compte inactif'})
-    except Benevole.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Profil introuvable'})
-    
-    if request.method == 'POST':
-        nom = request.POST.get('nom')
-        if nom:
-            marque, created = Marque.objects.get_or_create(nom=nom)
-            return JsonResponse({'success': True, 'id': marque.id, 'nom': marque.nom})
-    return JsonResponse({'success': False, 'error': 'Nom requis'})
+from ..models import Materiel, Marque, Intervention
 
 
 
@@ -103,6 +18,7 @@ def ajax_create_marque(request):
 @benevole_actif_required
 @permission_required('inventaire.change_materiel', raise_exception=True)
 def modifier_materiel(request, pk):
+
     materiel = get_object_or_404(Materiel, pk=pk)
     
     # Sécurité : Vérifier que c'est un ordinateur
@@ -114,6 +30,8 @@ def modifier_materiel(request, pk):
     benevole = request.user
     redirect_to_inventory = False
 
+    # === Traitement du POST ==========
+    # Soumission du formulaire rempli
     if request.method == 'POST':
         action = request.POST.get('action')
         form = DiagnosticRepaForm(request.POST, instance=ordinateur, action=action)
@@ -306,16 +224,43 @@ def modifier_materiel(request, pk):
                 print(f"Erreurs Formset : {formset.errors}")
             messages.error(request, "Une erreur est survenue dans le formulaire. Vérifiez les champs.")
 
+    # === Traitement du GET ==========
+    # Affichage du formulaire vide
     else:
-        # GET
         form = DiagnosticRepaForm(instance=ordinateur)
         formset = DisqueFormSet(instance=ordinateur)
 
+
+    # --- Gestion des boutons ----------
+    # Les boutons d'action sont différents selon l'étape de workflow
+    # Pour que le template n'ait pas à gérer de logique métier (si tel étape alors tel bouton...) 
+    # on créé ici un liste avec l'état affiché ou non de chaque bouton
+    statut = materiel.statut
+    display_flags = {
+        'show_start_button': statut == 'ENTREE',
+        'show_diag_actions': statut == 'DIAGNOSTIC',
+        'show_wait_actions': statut == 'ATTENTE_PIECES',
+        'show_repair_section': statut in ['REPARATION', 'PRET_A_DON'],
+        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PERDU'],
+        'show_recycle_button': statut in ['DIAGNOSTIC', 'REPARATION'], 
+    }
+
+    # On peut aussi préparer les textes dynamiques si besoin
+    status_message = ""
+    if statut == 'ENTREE':
+        status_message = "En attente de prise en charge."
+    elif statut == 'DIAGNOSTIC':
+        status_message = f"En cours de diagnostic par {materiel.benevole_en_charge}." if materiel.benevole_en_charge else "En cours de diagnostic."
+
+    
+    # --- Passage du contexte et affichage de la view
     context = {
         'materiel': materiel,
         'ordinateur': ordinateur,
         'form': form,
         'formset': formset,
+        'display': display_flags,
+        'status_message': status_message,
     }
     return render(request, 'inventaire/modifier_materiel.html', context)
 

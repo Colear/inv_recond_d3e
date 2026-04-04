@@ -1,25 +1,17 @@
+<!-- inventaire/templates/inventaire/modifier_materiel.html -->
 {% extends 'inventaire/parts/menu.html' %}
+{% load crispy_forms_tags %}
 {% load django_bootstrap5 %}
 
-{% block title %}Modification d'ordinateur {{ materiel.numero_inventaire }}{% endblock %}
+{% block title %}Modification : {{ materiel.numero_inventaire }}{% endblock %}
 
 {% block contenu %}
 <div class="container-fluid">
-
+    
     <!-- En-tête -->
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2>🖥️ {{ materiel.marque|default:"Marque inconnue" }} - {{ materiel.modele|default:"modèle inconnu" }} - 
-                {% if ordinateur.categorie == "PORTABLE" %}
-                    PC portable
-                {% elif ordinateur.categorie == "FIXE" %}
-                    PC fixe
-                {% elif ordinateur.categorie == "ALL_IN_ONE" %}
-                    PC tout en un
-                {% else %}
-                    autre type d'ordinateur
-                {% endif %}
-            </h2>
+            <h2>🔧 {{ materiel.marque }} {{ materiel.modele }} <small class="text-muted">({{ materiel.numero_inventaire }})</small></h2>
             <p class="text-muted">
                 Statut : <span class="badge bg-{% if materiel.statut == 'ENTREE' %}warning{% elif materiel.statut == 'DIAGNOSTIC' %}info{% elif materiel.statut == 'REPARATION' %}primary{% elif materiel.statut == 'PRET_A_DON' %}success{% else %}secondary{% endif %}">
                     {{ materiel.get_statut_display }}
@@ -35,165 +27,183 @@
         </div>
     </div>
 
+    <!-- Messages d'erreur globaux (ex: validation échouée) -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
     <form method="post" novalidate>
         {% csrf_token %}
 
-        <!-- Affichage des erreurs globales du formulaire (ex: CPU manquant) -->
+        <!-- Erreurs spécifiques du formulaire (ex: CPU manquant) -->
         {% if form.non_field_errors %}
             <div class="alert alert-danger">
                 {{ form.non_field_errors }}
             </div>
         {% endif %}
 
-        <!-- Rendu du Formulaire avec Crispy -->
-        {% load crispy_forms_tags %}
-        {{ form|crispy }}
 
-        <!-- Affichage du FormSet (Disques) - À garder tel quel ou à crispyfier aussi -->
-        <h3 class="mt-4">💾 Disques Durs</h3>
-        {{ formset.management_form }}
-        <table class="table" id="disk-formset-table">
-            <thead class="table-light">
-                <tr>
-                    <th>Type</th><th>Cap. (Go)</th><th>Marque/Modèle</th><th>N° Inv.</th><th>Sain ?</th><th>Données ?</th><th>Suppr.</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for disk_form in formset %}
-                <tr class="disk-row {% if forloop.last and disk_form.instance.pk is None %}empty-form{% endif %}">
-                    {% for hidden in disk_form.hidden_fields %}{{ hidden }}{% endfor %}
-                    <td>{{ disk_form.type_disque }}</td>
-                    <td>{{ disk_form.capacite_go }}</td>
-                    <td>{{ disk_form.marque }} {{ disk_form.modele }}</td>
-                    <td>{{ disk_form.numero_inventaire_disque }}</td>
-                    <td class="text-center">{{ disk_form.est_sain }}</td>
-                    <td class="text-center">{{ disk_form.contient_donnees }}</td>
-                    <td class="text-center">{% if disk_form.instance.pk %}{{ disk_form.DELETE }}{% endif %}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <button type="button" class="btn btn-sm btn-outline-primary" id="add-disk-btn">+ Ajouter un disque</button>
 
-            
-        <!-- Zone des boutons -->
-        <div class="mt-4 pt-3 border-top d-flex justify-content-between">
-                
-            {% if materiel.statut == 'ENTREE' %}
-                <!-- CAS 1 : Démarrage -->
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted fst-italic">
-                        <i class="bi bi-info-circle"></i> Cliquez ci-dessous pour prendre en charge ce dossier.
-                    </span>
-                    <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg">
-                        🚀 Commencer le diagnostic
+        <!-- ======================================================================= -->
+        <!-- CONTENU PRINCIPAL (Formulaire Crispy + FormSet Disques)                -->
+        <!-- ======================================================================= -->
+        
+        {% if not display.is_locked %}
+            <!-- Le formulaire Crispy affiche automatiquement les Fieldset définis dans le Python -->
+            {% crispy form %}
+
+            <!-- Section Disques Durs (FormSet) -->
+            <div class="card border-info mb-4 mt-4">
+                <div class="card-header bg-info text-white">
+                    💾 Gestion des Disques Durs / SSD
+                </div>
+                <div class="card-body bg-light">
+                    {{ formset.management_form }}
+                    <table class="table table-sm table-hover" id="disk-formset-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Cap. (Go)</th>
+                                <th>Marque/Modèle</th>
+                                <th>N° Inv. (DSK-)</th>
+                                <th class="text-center">Sain</th>
+                                <th class="text-center">Données</th>
+                                <th class="text-center">Suppr.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disk_form in formset %}
+                            <tr class="disk-row {% if forloop.last and disk_form.instance.pk is None %}empty-form{% endif %}">
+                                {% for hidden in disk_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                <td>{{ disk_form.type_disque }}</td>
+                                <td>{{ disk_form.capacite_go }}</td>
+                                <td>{{ disk_form.marque }} {{ disk_form.modele }}</td>
+                                <td>{{ disk_form.numero_inventaire_disque }}</td>
+                                <td class="text-center">{{ disk_form.est_sain }}</td>
+                                <td class="text-center">{{ disk_form.contient_donnees }}</td>
+                                <td class="text-center">
+                                    {% if disk_form.instance.pk %}
+                                        <div class="form-check d-flex justify-content-center">
+                                            {{ disk_form.DELETE }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-disk-btn">
+                        + Ajouter un disque
                     </button>
                 </div>
-            
-            {% elif materiel.statut == 'DIAGNOSTIC' %}
-                <!-- CAS 2 : En cours de diagnostic (LES 4 OPTIONS) -->
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div class="text-primary fw-bold small">
-                        <i class="bi bi-person-check"></i> En cours par : {{ materiel.benevole_en_charge.get_full_name|default:"Un bénévole" }}
-                    </div>
+            </div>
+
+
+
+            <!-- ======================================================================= -->
+            <!-- ZONE UNIQUE DE BOUTONS D'ACTION                                        -->
+            <!-- ======================================================================= -->
+            <div class="card border-warning mb-4">
+                <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3 bg-light">
                     
+                    <!-- Message contextuel -->
+                    <div class="text-muted small flex-grow-1">
+                        {% if display.show_start_button %}
+                            <i class="bi bi-info-circle"></i> Cliquez sur "Commencer" pour prendre en charge ce dossier.
+                        {% elif display.show_diag_actions %}
+                            <i class="bi bi-person-check"></i> Diagnostic en cours. Validez pour passer à la réparation.
+                        {% elif display.show_wait_actions %}
+                            <i class="bi bi-hourglass-split"></i> En attente de pièces. Réactivez quand les composants sont installés.
+                        {% elif display.show_validate_final_button %}
+                            <i class="bi bi-check-circle"></i> Matériel réparé. Validez la configuration logicielle pour le don.
+                        {% endif %}
+                    </div>
+
+                    <!-- Les Boutons -->
                     <div class="btn-group" role="group">
-                        <!-- Option 4 : Recycler (Sortie) -->
-                        <!-- Dans le div class="btn-group" -->
-                        <button type="submit" name="action" value="wait_parts" class="btn btn-outline-warning" 
-                                onclick="return confirm('Ce matériel sera placé en attente de pièces. Il ne sera plus visible dans les réparations actives. Confirmer ?');">
-                            ⏳ En attente de pièces
-                        </button>
-
-                        <div class="vr mx-2 bg-secondary"></div>
-                            
-                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                onclick="return confirm('⚠️ Confirmez-vous que ce matériel est bon pour le recyclage ?');">
-                            ♻️ Recycler
-                        </button>
                         
-                        <div class="vr mx-2 bg-secondary"></div>
+                        <!-- 1. DÉMARRAGE -->
+                        {% if display.show_start_button %}
+                            <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg">
+                                🚀 Commencer le diagnostic
+                            </button>
+                        {% endif %}
 
-                        <!-- Option 2 : Relâcher (Retour liste) -->
-                        <button type="submit" name="action" value="validate_diag_release" class="btn btn-info text-white" title="Valider le diagnostic et laisser le dossier dans la liste pour un autre bénévole">
-                            👋 Valider & Relâcher
-                        </button>
-                        
-                        <!-- Option 1 : Sauvegarder (Retour liste) -->
-                        <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary" title="Enregistrer l'avancement et revenir plus tard">
-                            💾 Sauvegarder & Quitter
-                        </button>
+                        <!-- 2. DIAGNOSTIC -->
+                        {% if display.show_diag_actions %}
+                            <button type="submit" name="action" value="validate_diag_repa" class="btn btn-success">
+                                ✅ Valider & Réparer
+                            </button>
+                            <button type="submit" name="action" value="validate_diag_release" class="btn btn-info text-white">
+                                👋 Relâcher
+                            </button>
+                            <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
+                                💾 Quitter
+                            </button>
+                            {% if display.show_recycle_button %}
+                                <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                        onclick="return confirm('⚠️ Confirmer le recyclage ? Cette action est difficilement réversible.');">
+                                    ♻️ Recycler
+                                </button>
+                            {% endif %}
+                        {% endif %}
 
-                        <!-- Option 3 : Continuer (Reste sur page) -->
-                        <button type="submit" name="action" value="validate_diag_repa" class="btn btn-success fw-bold" title="Valider le diagnostic et accéder à la section Réparation/Linux">
-                            ✅ Valider & Réparer
-                        </button>
+                        <!-- 3. ATTENTE PIÈCES -->
+                        {% if display.show_wait_actions %}
+                            <button type="submit" name="action" value="reactivate_keep" class="btn btn-success">
+                                🔧 Réactiver & Configurer
+                            </button>
+                            <button type="submit" name="action" value="reactivate_release" class="btn btn-outline-primary">
+                                🔩 Réactiver (Hardware seul)
+                            </button>
+                            {% if display.show_recycle_button %}
+                                <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                        onclick="return confirm('⚠️ Confirmer le recyclage ?');">
+                                    ♻️ Recycler
+                                </button>
+                            {% endif %}
+                        {% endif %}
+
+                        <!-- 4. VALIDATION FINALE -->
+                        {% if display.show_validate_final_button %}
+                            <button type="submit" name="action" value="validate_repa" class="btn btn-success btn-lg">
+                                🎉 Valider la Configuration (Prêt à donner)
+                            </button>
+                            {% if display.show_recycle_button %}
+                                <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                        onclick="return confirm('⚠️ Confirmer le recyclage ?');">
+                                    ♻️ Recycler
+                                </button>
+                            {% endif %}
+                        {% endif %}
+
                     </div>
                 </div>
+            </div>
 
-            {% elif materiel.statut == 'ATTENTE_PIECES' %}
-                <!-- CAS 3 : En attente de pièces -->
-                <div class="alert alert-warning mb-0 py-3">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h5 class="alert-heading mb-1">⏳ En attente de pièces</h5>
-                            <p class="mb-0 small">
-                                Ce matériel est sain mais incomplet. Il est actuellement stocké en attente de composants.
-                                {% if materiel.benevole_en_charge %}
-                                    <br><em>Actuellement assigné à : {{ materiel.benevole_en_charge.get_full_name }}</em>
-                                {% else %}
-                                    <br><em class="text-muted">Aucun bénévole assigné (Dossier libre).</em>
-                                {% endif %}
-                            </p>
-                        </div>
-                        
-                        <div class="col-md-4 text-end">
-                            <div class="d-grid gap-2">
-                                <!-- Bouton 1 : Je fais tout (Hardware + Software) -->
-                                <button type="submit" name="action" value="reactivate_keep" class="btn btn-success">
-                                    🔧 Réactiver & Configurer
-                                    <br><small class="fw-normal">(Je reste sur le dossier)</small>
-                                </button>
-                                
-                                <!-- Bouton 2 : Je fais juste le Hardware (Puis je libère) -->
-                                <button type="submit" name="action" value="reactivate_release" class="btn btn-outline-primary">
-                                    🔩 Réactiver (Hardware seul)
-                                    <br><small class="fw-normal">(Je retourne à la liste)</small>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        {% else %}
+            <!-- CAS : Matériel Verrouillé (Donné / Recyclé) -->
+            <div class="alert alert-secondary text-center py-5">
+                <h3><i class="bi bi-lock-fill"></i> Dossier Clôturé</h3>
+                <p class="mb-3">Ce matériel a été {{ materiel.get_statut_display|lower }}. Aucune modification n'est possible.</p>
+                <hr>
+                <p class="small text-muted">Vous pouvez consulter les informations ci-dessous à titre informatif.</p>
+                {{ form|crispy }}
+            </div>
+        {% endif %}
 
-            {% elif materiel.statut == 'REPARATION' %}
-                <!-- CAS 4 : Déjà validé, en attente de réparation -->
-                <div class="alert alert-success mb-0 py-2 d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-check-circle"></i> Diagnostic validé. En attente de réparation/configuration.</span>
-                    <!-- On garde l'option Recyclage si on se rend compte que c'est HS pendant la réparation -->
-                    <button type="submit" name="action" value="recycle_now" class="btn btn-sm btn-outline-dark"
-                            onclick="return confirm('Recycler ce matériel maintenant ?');">
-                        ♻️ Recycler
-                    </button>
-                    <button type="submit" name="action" value="validate_repa" class="btn btn-success btn-lg">
-                                🎉 Valider la Réparation (Prêt à donner)
-                    </button>
-                </div>
-                
-            {% elif materiel.statut == 'RECYCLAGE' %}
-                <div class="alert alert-secondary mb-0 py-2">
-                    <i class="bi bi-lock"></i> Ce matériel a été envoyé au recyclage.
-                </div>
-                
-            {% elif materiel.statut == 'PRET_A_DON' %}
-                <div class="alert alert-success mb-0 py-2">
-                    <i class="bi bi-check-all"></i> Matériel prêt à être donné.
-                </div>
-
-            {% endif %}
-        </div>          
     </form>
 
-    <!-- Historique -->
+
+
+    <!-- ======================================================================= -->
+    <!-- HISTORIQUE DES INTERVENTIONS                                           -->
+    <!-- ======================================================================= -->
     <div class="card mt-4 bg-light">
         <div class="card-header">
             <h5 class="mb-0">📜 Historique des interventions</h5>
@@ -203,42 +213,30 @@
                 <ul class="list-group list-group-flush">
                     {% for interv in materiel.interventions.all %}
                     <li class="list-group-item bg-transparent">
-                        <small class="text-muted">{{ interv.date_heure|date:"d/m/Y H:i" }} - <strong>{{ interv.benevole.get_full_name|default:interv.benevole.username }}</strong></small>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted fw-bold">
+                                {{ interv.date_heure|date:"d/m/Y à H:i" }} 
+                                {% if interv.benevole %}par {{ interv.benevole.get_full_name|default:interv.benevole.username }}{% endif %}
+                                <span class="badge bg-secondary">{{ interv.get_type_action_display }}</span>
+                            </small>
+                        </div>
                         <p class="mb-0 mt-1">{{ interv.commentaire }}</p>
                     </li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="text-muted mb-0">Aucune intervention enregistrée.</p>
+                <p class="text-muted mb-0 fst-italic">Aucune intervention enregistrée pour le moment.</p>
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- SCRIPT JS POUR LE FORMSET (À inclure) -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Exemple simple : Masquer/Afficher section Portable selon un champ (si vous avez un selecteur de catégorie dans le form)
-    // Ou toujours laisser visible car c'est un formulaire commun PC/Portable. 
-    // Si le PC est une Tour, les champs 'a_alimentation' et 'etat_batterie' resteront à leur valeur par défaut et ne gêneront pas.
-    
-    // Astuce : Si vous voulez masquer la section Linux tant que le diag n'est pas validé :
-    const statutSelect = document.getElementById('id_statut');
-    const linuxSection = document.getElementById('linux-section');
-    
-    function toggleLinux() {
-        if (statutSelect) {
-            // Si statut est ENTREE ou DIAGNOSTIC, on masque (optionnel)
-            // if (['ENTREE', 'DIAGNOSTIC'].includes(statutSelect.value)) { ... }
-        }
-    }
-    
-    if (statutSelect) {
-        statutSelect.addEventListener('change', toggleLinux);
-        toggleLinux(); // Init
-    }
-});
 
+
+<!-- ======================================================================= -->
+<!-- JAVASCRIPT : Gestion dynamique des disques                             -->
+<!-- ======================================================================= -->
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     const formsetPrefix = "{{ formset.prefix }}";
     const tableBody = document.querySelector("#disk-formset-table tbody");
@@ -258,20 +256,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const newRow = emptyRow.cloneNode(true);
             newRow.classList.remove("empty-form");
             
-            // Mise à jour des index
+            // Mise à jour des index (0, 1, 2...)
             newRow.innerHTML = newRow.innerHTML.replace(
                 new RegExp(`${formsetPrefix}-(\\d+|__prefix__)`, 'g'),
                 `${formsetPrefix}-${currentTotal}`
             );
 
-            // Reset des valeurs
+            // Reset des valeurs des champs
             const inputs = newRow.querySelectorAll("input, select");
             inputs.forEach(input => {
                 if (input.type === 'checkbox') input.checked = false;
                 else input.value = "";
             });
 
-            // Ajout bouton suppression
+            // Ajout du bouton de suppression pour la nouvelle ligne
             const deleteCell = newRow.querySelector("td:nth-child(7)");
             deleteCell.innerHTML = `
                 <div class="form-check d-flex justify-content-center">

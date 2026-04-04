@@ -333,7 +333,7 @@ class Ordinateur(Materiel):
     cpu_score = models.PositiveIntegerField(
         null=True, 
         blank=True, 
-        help_text="Indice PassMark (https://www.cpubenchmark.net/). Si < 800 : recyclage recommandé."
+        help_text="<a href=\"https://www.cpubenchmark.net/cpu-list/\">Indice PassMark</a>, si < 800 recyclage."
     )
     ram_go = models.PositiveIntegerField(default=0)
     ram_nb_barrettes = models.PositiveIntegerField(default=1)
@@ -371,7 +371,7 @@ class Ordinateur(Materiel):
     modele_gpu = models.CharField(max_length=100, blank=True)   
     a_carte_wifi = models.BooleanField(
         default=False, 
-        help_text="Présence d'une carte WiFi (interne ou clé USB fournie). Crucial pour les Tours."
+        help_text="Connexion WiFi possible (carte interne ou clé USB)."
     )
 
     # Linux & Logiciels

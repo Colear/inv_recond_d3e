@@ -7,13 +7,15 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, Table, Table
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER
 from django.db.models import Q
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from django.views.generic import ListView
+from django.utils import timezone
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, redirect 
+from django.views.generic import CreateView, ListView
 from django.contrib.auth.decorators import login_required, permission_required
 from ..mixins import AuthBenevoleMixin
 from ..decorators import benevole_actif_required
-from ..models import Materiel
+from ..models import Materiel, Marque, Ordinateur, Ecran, Peripherique, Benevole
+from ..forms import NouveauMaterielForm
 
 
 
@@ -207,4 +209,88 @@ def search_by_inv(request, numero_inv):
             'message': f"Le numéro d'inventaire <strong>{numero_inv}</strong> n'est pas encore attribué à un matériel."
         }
         return render(request, 'inventaire/etiquette_non_trouvee.html', context)
+
+
+
+
+"""====== NouveauMateriel =====================================================
+    Formulaire de saisie rapide d'un nouveau matériel.
+    Contient également une vue Ajax pour ajouter une marque à la volée.
+============================================================================"""
+
+class NouveauMaterielView(AuthBenevoleMixin, CreateView): 
+
+    model = Materiel # On utilise le parent pour le formulaire, mais on sauvera dans l'enfant
+    form_class = NouveauMaterielForm
+    template_name = 'inventaire/nouveau_materiel.html'
+    success_url = '/inventaire' # Redirige vers la liste après succès
+
+    # permissions nécessaires pour afficher la vue
+    permission_required = 'inventaire.add_materiel'
+
+    def form_valid(self, form):
+        type_materiel = form.cleaned_data['type_materiel']
+        categorie_pc = form.cleaned_data.get('categorie_pc')
+        categorie_periph = form.cleaned_data.get('categorie_periph')
+        
+        # 1. Création de l'instance en mémoire (pas encore en base)
+        instance = form.save(commit=False)
+        instance.date_entree = timezone.now().date()
+        
+        # 2. Génération du numéro
+        instance.numero_inventaire = instance.generer_numero_inventaire()
+        
+        # 3. Sauvegarde initiale (Crée la ligne avec un ID)
+        # On essaie de sauver normalement d'abord
+        instance.save()
+        
+        # 4. Création de l'enfant (Nécessite que le parent ait un ID)
+        if type_materiel == 'PC':
+            if not categorie_pc:
+                return self.form_invalid(form)
+            Ordinateur.objects.create(materiel_ptr=instance, categorie=categorie_pc)
+        elif type_materiel == 'ECRAN':
+            Ecran.objects.create(materiel_ptr=instance)
+        elif type_materiel == 'PERIPH':
+            if not categorie_periph:
+                return self.form_invalid(form)
+            Peripherique.objects.create(materiel_ptr=instance, type_periph=categorie_periph)
+            
+        # 5. CORRECTION GLOBALE (Le "Silver Bullet")
+        # On force l'écriture de TOUS les champs critiques en une seule requête SQL
+        # Cela contourne tous les problèmes de commit=False, editable, etc.
+        Materiel.objects.filter(pk=instance.pk).update(
+            numero_inventaire=instance.numero_inventaire,
+            poids_entree_kg=instance.poids_entree_kg,
+            provenance=instance.provenance,
+            marque_id=instance.marque_id, # Attention : utiliser l'ID pour une ForeignKey
+            modele=instance.modele,
+            type_materiel=instance.type_materiel,
+            date_entree=instance.date_entree,
+            statut=instance.statut,
+            benevole_en_charge_id=instance.benevole_en_charge_id,
+        )
+
+        return redirect(self.success_url)
+
+
+
+# --- Vue AJAX pour permettre l'ajout de marque à la volée ---
+
+def ajax_create_marque(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Non authentifié'})
+    
+    try:
+        if not request.user.profile_benevole.actif and not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Compte inactif'})
+    except Benevole.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Profil introuvable'})
+    
+    if request.method == 'POST':
+        nom = request.POST.get('nom')
+        if nom:
+            marque, created = Marque.objects.get_or_create(nom=nom)
+            return JsonResponse({'success': True, 'id': marque.id, 'nom': marque.nom})
+    return JsonResponse({'success': False, 'error': 'Nom requis'})
 

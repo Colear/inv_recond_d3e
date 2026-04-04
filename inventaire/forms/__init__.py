@@ -3,10 +3,9 @@
 # ==============================================================================
 # 1. FORMULAIRES DE STOCK (Entrée, Étiquettes)
 # ==============================================================================
-# from .stock import (
-#    NouveauMaterielForm,
-#    # Ajoutez ici d'autres formulaires liés à l'entrée de stock si vous en créez
-# )
+from .stock import (
+    NouveauMaterielForm,
+)
 
 # ==============================================================================
 # 2. FORMULAIRES DE WORKFLOW (Diagnostic, Réparation, Disques)
@@ -14,7 +13,6 @@
 from .workflow import (
     DiagnosticRepaForm,
     DisqueFormSet,
-    NouveauMaterielForm,
     # Vous pourrez ajouter ici des formulaires spécifiques pour les écrans/périphériques si besoin
 )
 

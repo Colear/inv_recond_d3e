@@ -11,11 +11,11 @@ from .stock import (
     InventaireListView,
     imprimer_planche_etiquettes,
     search_by_inv,
+    NouveauMaterielView,
+    ajax_create_marque,
 )
 
 from .workflow import (
-    NouveauMaterielView,
-    ajax_create_marque,
     modifier_materiel,
 )
 
