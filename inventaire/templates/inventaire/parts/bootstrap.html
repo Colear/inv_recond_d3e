@@ -15,7 +15,23 @@
     <!-- Page title -->
     <title>{% block bootstrap5_title %}{% block title %}django-bootstrap5 template title{% endblock %}{% endblock %}</title>
 
-    {% bootstrap_css %}
+    <!-- Un peu de CSS pour gérer l'affichage / masquage de sections -->
+    <style>
+        .fade-section {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+            opacity: 0;
+            transform: translateY(-10px); 
+            display: none; 
+        }
+        
+        .fade-section.show {
+            opacity: 1;
+            transform: translateY(0);
+            display: block; 
+        }
+    </style>
+
+{% bootstrap_css %}
     {% bootstrap_javascript %}    
 </head>
 <body>

@@ -19,6 +19,8 @@ class DiagnosticRepaForm(forms.ModelForm):
         model = Ordinateur
         # On inclut TOUS les champs nécessaires (Hardware + Software)
         fields = [
+            # Type d'ordi
+            'categorie',
             # Hardware - Diagnostic
             'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type',
             'a_carte_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
@@ -74,13 +76,15 @@ class DiagnosticRepaForm(forms.ModelForm):
         action = self.data.get('action')
         
         # Définition des actions qui nécessitent un diagnostic COMPLET
-        actions_completes = ['validate_diag_repa', 'validate_repa'] 
+        actions_completes = ['validate_diag_release', 'validate_diag_repa', 'validate_repa'] 
         
         if action in actions_completes:
             # Si on veut passer en Réparation/Config, les champs Hardware sont OBLIGATOIRES
             errors = []
             if not cleaned_data.get('cpu'):
                 errors.append("Le processeur (CPU) est obligatoire pour valider le diagnostic.")
+            if not cleaned_data.get('cpu_score'):
+                errors.append("L'indice Passmak est obligatoire pour valider le diagnostic. Allez sur https://www.cpubenchmark.net/cpu-list pour le trouver.")
             if not cleaned_data.get('ram_go'):
                 errors.append("La quantité de RAM est obligatoire pour valider le diagnostic.")
             if not cleaned_data.get('rapport_diagnostic'):

@@ -69,17 +69,20 @@
                             <div class="accordion-body">
                                 <!-- Grille Bootstrap (inchangée) -->
                                 <div class="row g-3">
-                                    <div class="col-md-6">{{ form.cpu|as_crispy_field }}</div>
-                                    <div class="col-md-6">{{ form.cpu_score|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.categorie|as_crispy_field }}</div>
+                                    <div class="col-md-5">{{ form.cpu|as_crispy_field }}</div>
+                                    <div class="col-md-3">{{ form.cpu_score|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.ram_go|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.ram_nb_barrettes|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.ram_type|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.a_carte_wifi|as_crispy_field }}</div>
                                     
-                                    <div class="col-12 mt-4"><h6 class="text-primary border-bottom pb-2">💻 Spécifique PC Portable</h6></div>
-                                    <div class="col-md-6">{{ form.a_alimentation|as_crispy_field }}</div>
-                                    <div class="col-md-6">{{ form.etat_batterie|as_crispy_field }}</div>
-                                    
+                                    <div class="col-12 mt-4 portable-section-wrapper fade-section">
+                                        <h6 class="text-primary border-bottom pb-2">💻 Spécifique PC Portable</h6>
+                                        <div class="col-md-6">{{ form.a_alimentation|as_crispy_field }}</div>
+                                        <div class="col-md-6">{{ form.etat_batterie|as_crispy_field }}</div>
+                                    </div>
+
                                     <div class="col-12 mt-3">{{ form.rapport_diagnostic|as_crispy_field }}</div>
                                     
                                     <div class="col-12 mt-4"><h6 class="text-warning border-bottom pb-2">🛠️ Réparation Matérielle</h6></div>
@@ -411,6 +414,48 @@ document.addEventListener('DOMContentLoaded', function() {
             if (card) card.style.opacity = '0.5';
         }
     }
+
+
+    // ============================================================
+    // Gestion de la partie dédiée au portables dans le hardware
+    // ============================================================
+    const categorieSelect = document.getElementById('id_categorie');
+    const portableSection = document.querySelector('.portable-section-wrapper'); 
+
+    if (categorieSelect && portableSection) {
+        
+        function togglePortableSection() {
+            const valeur = categorieSelect.value;
+            
+            if (valeur === 'PORTABLE') {
+                // Afficher
+                portableSection.classList.remove('d-none');
+                // Petit délai pour permettre au navigateur de traiter le display:block avant de changer l'opacité
+                setTimeout(() => {
+                    portableSection.classList.add('show');
+                }, 10);
+            } else {
+                // Masquer
+                portableSection.classList.remove('show');
+                // On attend la fin de la transition (0.4s = 400ms) avant de mettre display:none
+                setTimeout(() => {
+                    if (!portableSection.classList.contains('show')) {
+                        portableSection.classList.add('d-none');
+                    }
+                }, 400); 
+            }
+        }
+
+        // 1. Exécuter au chargement de la page (pour masquer si c'est un FIXE)
+        togglePortableSection();
+
+        // 2. Écouter les changements (si l'utilisateur corrige la catégorie)
+        categorieSelect.addEventListener('change', togglePortableSection);
+    }
+
+
+
+
 });
 </script>
 
