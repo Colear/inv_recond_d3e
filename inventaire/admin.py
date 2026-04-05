@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.utils.html import format_html, mark_safe
+from django.utils.html import format_html 
+from django.utils.safestring import mark_safe
 from django import forms
 from .models import (
     Marque, 
@@ -7,9 +8,9 @@ from .models import (
     Beneficiaire, 
     Intervention, 
     Ordinateur, 
-    DisqueDur, 
     Ecran, 
-    Peripherique
+    Peripherique,
+    PieceDetachee,
 )
 
 
@@ -100,41 +101,6 @@ class MarqueAdmin(admin.ModelAdmin):
 
 
 
-"""====== DisqueDur ===========================================================
-Permet de stocker les disques durs, avec éventuellement un numéro 
-d'inventaire quand ils sont testés en remis en stock.
-La class Inline permet l'ajout en ligne directement dans les ordis.
-============================================================================"""
-
-class DisqueDurInline(admin.TabularInline):
-    model = DisqueDur
-    extra = 1
-    fields = ('type_disque', 'capacite_go', 'marque', 'est_sain', 'contient_donnees', 'numero_inventaire_disque')
-    verbose_name = "Disque Dur"
-    verbose_name_plural = "Disques Durs"
-
-@admin.register(DisqueDur)
-class DisqueDurAdmin(admin.ModelAdmin):
-    list_display = ('numero_inventaire_disque', 'type_disque', 'capacite_go', 'marque', 'modele', 'est_sain', 'contient_donnees', 'ordinateur_link')
-    list_filter = ('est_sain', 'type_disque', 'contient_donnees', 'numero_inventaire_disque')
-    search_fields = ('numero_inventaire_disque', 'numero_serie', 'marque', 'modele')
-    readonly_fields = ('numero_inventaire_disque',) # Optionnel : si vous voulez qu'il soit auto-généré aussi
-    
-    def ordinateur_link(self, obj):
-        if obj.ordinateur:
-            return format_html('<a href="../ordinateur/{}/change/">{}</a>', obj.ordinateur.id, obj.ordinateur.numero_inventaire)
-        return "<span style='color:grey;'>En stock (Dissocié)</span>"
-    ordinateur_link.short_description = "Ordinateur lié"
-
-    actions = ['marquer_comme_sain_efface']
-
-    def marquer_comme_sain_efface(self, request, queryset):
-        queryset.update(est_sain=True, contient_donnees=False)
-        self.message_user(request, f"{queryset.count()} disques marqués comme sains et effacés.")
-    marquer_comme_sain_efface.short_description = "Marquer comme sain et effacé (Prêt stock)"
-
-
-
 """====== Ordinateur ==========================================================
     Classe fille de Materiel destinée aux ordis.
 ============================================================================""" 
@@ -145,22 +111,27 @@ class OrdinateurAdmin(admin.ModelAdmin):
     list_filter = ('statut', 'categorie', 'marque', 'linux_installe', 'a_carte_graphique_dediee', 'a_carte_wifi')
     search_fields = ('numero_inventaire', 'marque__nom', 'modele', 'cpu', 'numero_serie')
     
-    inlines = [DisqueDurInline, InterventionInline]
+    inlines = [InterventionInline]
     
     # AJOUT : Rendre le numéro d'inventaire visible en lecture seule
     readonly_fields = ('numero_inventaire', 'date_sortie') 
 
     fieldsets = (
         ('Identification & Flux', {
-            # CORRECTION : 'numero_inventaire' retiré d'ici car il est en readonly_fields
             'fields': ('marque', 'modele', 'numero_serie', 'statut', 'date_entree', 'poids_entree_kg', 'provenance')
         }),
         ('Catégorie & Hardware de base', {
-            'fields': ('categorie', 'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 'a_carte_graphique_dediee', 'modele_gpu', 'a_carte_wifi')
+            'fields': ('categorie', 'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type' )
+        }),
+        ('Disques', {
+            'fields': ('disque_principal_type', 'disque_principal_go', 'disque_secondaire_type', 'disque_secondaire_go' )
         }),
         ('Spécifique PC Portable', {
             'fields': ('a_alimentation', 'etat_batterie', 'ecran_diagonale_pouces'),
             'classes': ('collapse',)
+        }),
+        ('Détail hardware', {
+            'fields': ('statut_wifi', 'a_carte_graphique_dediee', 'modele_gpu' )
         }),
         ('Configuration Linux & Logiciels', {
             'fields': ('linux_installe', 'linux_distro', 'date_maj_os', 'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure'),

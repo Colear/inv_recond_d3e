@@ -133,11 +133,13 @@ class Materiel(models.Model):
     STATUT_CHOICES = [
         ('ENTREE', 'En attente de diagnostic'),
         ('DIAGNOSTIC', 'En cours de diagnostic'),
-        ('ATTENTE_PIECES', 'En attente de pièces'), 
-        ('REPARATION', 'En cours de configuration'),
-        ('PRET_A_DON', 'Prêt à donner'),
+        ('ATTENTE_PIECES', 'En attente de pièces / Cannibalisation'),
+        ('ATTENTE_DEMONTAGE', 'En attente de démontage (Stock pièces)'),
+        ('EN_COURS_DEMONTAGE', 'En cours de démontage'),
+        ('REPARATION', 'En cours de réparation / Configuration'),
+        ('PRET_A_DON', 'Réparé - Prêt à donner'),
         ('DONNE', 'Donné'),
-        ('RECYCLAGE', 'Recyclé'),
+        ('RECYCLAGE', 'Envoyé au recyclage'),
         ('PERDU', 'Perdu / Volé'),
     ]
 
@@ -320,15 +322,51 @@ class Peripherique(Materiel):
 
 class Ordinateur(Materiel):
 
-    CATEGORIE_CHOICES = [
+    '''
+        Tous les choix utilisés dans les différents SELECT sont regroupés ici
+        pour faciliter la maintenance ! 
+    '''
+    CATEGORIE_CHOICES = [ 
         ('FIXE', 'PC Fixe / Tour'),
         ('PORTABLE', 'PC Portable'),
         ('ALL_IN_ONE', 'All-in-One'),
     ]
-    
+    RAM_CHOICES = [
+            ('DDR2', 'DDR2'), ('DDR3', 'DDR3'), ('DDR3L', 'DDR3 Low Voltage'),
+            ('DDR4', 'DDR4'), ('DDR5', 'DDR5'), ('SODIMM', 'SODIMM'),
+            ('INCONNUE', 'Inconnue')
+    ]
+    DISQUE_CHOICES = [
+        ('HDD', 'HDD (Mécanique)'), ('SSD', 'SSD (SATA)'), 
+        ('NVME', 'SSD (NVMe)'), ('HYBRIDE', 'SSHD')
+    ]
+    ECRAN_CHOICES = [ # pour les portables !
+            ('12', '12"'),('13', '13"'), ('14', '14"'), ('15', '15.6" ou 16"'),
+            ('17', '17"'), ('18', '18"'), ('AUTRE', 'Autre')        
+    ]
+    ETAT_BATTERIE_CHOICES = [
+            ('N/A', 'Non concerné'), ('EXCELLENT', 'Comme neuve'), ('BON', 'Correcte'),
+            ('FAIBLE', 'Faible'), ('HS', 'HS'), ('INCONNUE', 'Non testée')
+    ]
+    WIFI_CHOICES = [
+        ('NON', '❌ Non / HS'),
+        ('INTEGRE', '✅ Intégré (Carte mère)'),
+        ('CARTE', '✅ Intégré (Carte fille)'),
+        ('CLEF_ORIGINE', '🔑 Clef WiFi d\'origine fournie'),
+        ('CLEF_ACHAT', '💰 Clef WiFi achetée (à facturer)'),
+    ]
+    DISTRIB_CHOICES = [
+        ('ANDUIN', 'AnduinOS'), ('ZORIN', 'Zorin OS'), ('UBUNTU', 'Ubuntu'),
+        ('LINUX_MINT', 'Linux Mint'), ('AUTRE', 'Autre'),
+    ]
+    PHOTO_CHOICES = [('AUCUN', 'Aucun'), ('GIMP', 'GIMP'), ('PHOTOFLARE', 'Photoflare'), ('DARKTABLE', 'Darktable')]
+    MEDIA_CHOICES = [('VLC', 'VLC'), ('DEFAULT', 'Défaut OS'), ('MPV', 'MPV')]
+
+
+    # ----- Type d'ordinateur
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES, default='FIXE')
     
-    # CPU & RAM Détaillée
+    # ----- CPU & RAM Détaillée
     cpu = models.CharField(max_length=100, blank=True)
     cpu_score = models.PositiveIntegerField(
         null=True, 
@@ -337,67 +375,35 @@ class Ordinateur(Materiel):
     )
     ram_go = models.PositiveIntegerField(default=0)
     ram_nb_barrettes = models.PositiveIntegerField(default=1)
-    ram_type = models.CharField(
-        max_length=20, 
-        choices=[
-            ('DDR2', 'DDR2'), ('DDR3', 'DDR3'), ('DDR3L', 'DDR3 Low Voltage'),
-            ('DDR4', 'DDR4'), ('DDR5', 'DDR5'), ('SODIMM', 'SODIMM'),
-            ('INCONNUE', 'Inconnue')
-        ],
-        default='INCONNUE'
-    )
-    
-    # Spécifique Portable
-    a_alimentation = models.BooleanField(default=True)
-    etat_batterie = models.CharField(
-        max_length=20, 
-        choices=[
-            ('N/A', 'Non concerné'), ('EXCELLENT', 'Comme neuve'), ('BON', 'Correcte'),
-            ('FAIBLE', 'Faible'), ('HS', 'HS'), ('INCONNUE', 'Non testée')
-        ],
-        default='N/A'
-    )
-    ecran_diagonale_pouces = models.CharField(
-        max_length=10, 
-        choices=[
-            ('13.3', '13.3" (34 cm)'), ('14', '14" (36 cm)'), ('15.6', '15.6" (40 cm)'),
-            ('16', '16" (40.6 cm)'), ('17.3', '17.3" (44 cm)'), ('AUTRE', 'Autre')
-        ],
-        blank=True
-    )
+    ram_type = models.CharField(max_length=20, choices=RAM_CHOICES, default='INCONNUE')
 
-    # Autres infos hardware
+    # ----- Disques 
+    disque_principal_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, blank=True, default='')    
+    disque_principal_go = models.PositiveIntegerField(default=0, blank=True)
+    disque_secondaire_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, blank=True, default='')    
+    disque_secondaire_go = models.PositiveIntegerField(default=0, blank=True)
+    
+    
+    # ----- Spécifique Portable
+    a_alimentation = models.BooleanField(default=True)
+    etat_batterie = models.CharField(max_length=20, choices=ETAT_BATTERIE_CHOICES, default='N/A')
+    ecran_diagonale_pouces = models.CharField(max_length=10, choices=ECRAN_CHOICES, blank=True)
+
+    # ----- Autres infos hardware
     a_carte_graphique_dediee = models.BooleanField(default=False)
     modele_gpu = models.CharField(max_length=100, blank=True)   
-    a_carte_wifi = models.BooleanField(
-        default=False, 
-        help_text="Connexion WiFi possible (carte interne ou clé USB)."
-    )
+    statut_wifi = models.CharField(max_length=20, choices=WIFI_CHOICES, default='NON', help_text="Type de connexion WiFi disponible")
 
-    # Linux & Logiciels
+    # ----- Linux & Logiciels
     linux_installe = models.BooleanField(default=False)
-    linux_distro = models.CharField(
-        max_length=50, 
-        blank=True, 
-        choices=[
-            ('ANDUIN', 'AnduinOS'), ('ZORIN', 'Zorin OS'), ('UBUNTU', 'Ubuntu'),
-            ('LINUX_MINT', 'Linux Mint'), ('AUTRE', 'Autre'),
-        ]
-    )
+    linux_distro = models.CharField(max_length=50, blank=True, choices=DISTRIB_CHOICES)
     date_maj_os = models.DateField(null=True, blank=True)
-    
     onlyoffice_installe = models.BooleanField(default=False)
-    logiciel_photo = models.CharField(
-        max_length=50, blank=True, 
-        choices=[('AUCUN', 'Aucun'), ('GIMP', 'GIMP'), ('PHOTOFLARE', 'Photoflare'), ('DARKTABLE', 'Darktable')]
-    )
-    media_player = models.CharField(
-        max_length=50, blank=True, 
-        choices=[('VLC', 'VLC'), ('DEFAULT', 'Défaut OS'), ('MPV', 'MPV')]
-    )
+    logiciel_photo = models.CharField(max_length=50, blank=True, choices=PHOTO_CHOICES)
+    media_player = models.CharField(max_length=50, blank=True, choices=MEDIA_CHOICES)
     firefox_configure = models.BooleanField(default=False)    
 
-    # Réparation
+    # ----- Réparation
     pieces_changees = models.TextField(blank=True)
     cout_reparation = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
 
@@ -412,60 +418,143 @@ class Ordinateur(Materiel):
 
 
 
-"""====== DisqueDur ===========================================================
-Permet de stocker les disques durs, avec éventuellement un numéro 
-d'inventaire quand ils sont testés en remis en stock.
-============================================================================"""
+"""====== Pièces détachées ====================================================
+    Stockage et tracage des pièces détachées.
+============================================================================""" 
 
-class DisqueDur(models.Model):
+class PieceDetachee(models.Model):
+    
+    CATEGORIE_CHOICES = [
+        ('RAM', 'Barrette RAM'),
+        ('DISQUE', 'Disque Dur / SSD'),
+        ('ECRAN_PC', 'Écran de PC Portable'),
+        ('BATTERIE', 'Batterie Portable'),
+        ('ALIM', 'Alimentation Externe'),
+        ('CARTE_WIFI', 'Carte WiFi'),
+        ('CLEF_WIFI', 'Clef WiFi'),
+        ('CARTE_GRAPHIQUE', 'Carte Graphique (Tour)'),
+        ('CLAVIER', 'Clavier de PC Portable'),
+        ('LECTEUR_OPTIQUE', 'Lecteur DVD/Blu-Ray'),
+        ('DIVERS', 'Divers (Charnière, Nappe, Vis...)'),
+    ]
 
-    # ForeignKey avec null=True pour permettre les disques en stock sans PC
-    ordinateur = models.ForeignKey(
-        Ordinateur, 
+    ETAT_CHOICES = [
+        ('NON_TESTE', '❓ Non testé / Inconnu'),
+        ('TESTE_BON', '✅ Testé & Fonctionnel'),
+        ('NETTOYAGE', '🧼 En cours de nettoyage/effacement'),
+        ('RESERVE', '🔒 Réservé pour un projet'),
+        ('HS', '❌ HS / À recycler'),
+    ]
+
+    # ----- Numéro d'inventaire 
+    # Format : PCD-XXXX (ex: PCD-0042)
+    validateur_numero_piece = RegexValidator(
+        regex=r'^PCD-\d{4}$',
+        message="Le format doit être PCD- suivi de 4 chiffres (ex: PCD-0042)."
+    )
+    numero_inventaire = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True,  # optionnel dans les formulaires
+        null=True,   # optionnel dans la base de données (stocké comme NULL)
+        validators=[validateur_numero_piece], # La validation ne s'applique que si le champ n'est pas vide
+        verbose_name="N° Inventaire Pièce",
+        help_text="Laisser vide pour l'instant. Sera généré automatiquement à l'étiquetage."
+    )
+
+    # ----- Identification
+    categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES)
+    marque = models.CharField(max_length=100, blank=True, help_text="Marque du composant")
+    modele = models.CharField(max_length=100, blank=True, help_text="Référence constructeur")
+    specifications = models.TextField(
+        blank=True, 
+        help_text="Détails techniques (Ex: 8Go DDR4, 500Go SSD, 15.6' FHD IPS, 65W)"
+    )
+    
+    # ----- Traçabilité (origine & destination)
+    pc_origine = models.ForeignKey(
+        'Materiel', 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
-        related_name='disques'
+        related_name='pieces_recuperees',
+        help_text="PC d'origine (si récupération sur matériel)"
     )
-    
-    # Numéro d'inventaire disque, ne sera utilisé que si disque testé !
-    validateur_numero_disque = RegexValidator(
-        regex=r'^DSK-\d{4}$',
-        message="Le format doit être DSK- suivi de 4 chiffres (ex: DSK-0042)."
-    )
-    numero_inventaire_disque = models.CharField(
-        max_length=20, 
-        unique=True, 
+    pc_destination = models.ForeignKey(
+        'Materiel', 
+        on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
-        validators=[validateur_numero_disque], # <--- Application du validateur
-        verbose_name="N° Inventaire Disque",
-        help_text="Uniquement si testé! Format obligatoire : DSK-0001"
+        related_name='pieces_installees',
+        help_text="Installée dans le PC (si réemploi)"
     )
 
-    # Caractéristiques techniques    
-    TYPE_CHOICES = [
-        ('HDD', 'HDD (Mécanique)'), ('SSD', 'SSD (SATA)'), 
-        ('NVME', 'SSD (NVMe)'), ('HYBRIDE', 'SSHD')
-    ]
+    # ----- État & stock
+    etat = models.CharField(max_length=20, choices=ETAT_CHOICES, default='NON_TESTE')
+    emplacement = models.CharField(
+        max_length=50, 
+        blank=True, 
+        help_text="Localisation physique (Ex: Étagère A, Boîte RAM-DDR4)"
+    )
+    poids_kg = models.DecimalField(
+        max_digits=6, 
+        decimal_places=3, 
+        default=0, 
+        help_text="Poids de la pièce seule (pour bilan matière précis)"
+    )
     
-    capacite_go = models.PositiveIntegerField()
-    type_disque = models.CharField(max_length=10, choices=TYPE_CHOICES, default='HDD')
-    marque = models.CharField(max_length=100, blank=True)
-    modele = models.CharField(max_length=100, blank=True)
-    numero_serie = models.CharField(max_length=100, blank=True)
-    
-    # Etat général après test
-    est_sain = models.BooleanField(default=True)
-    contient_donnees = models.BooleanField(default=False)
+    # ----- Dates
+    date_entree_stock = models.DateTimeField(auto_now_add=True)
+    date_sortie_stock = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text="Date d'installation ou de sortie définitive"
+    )
+
+    # ----- Génération du numéro d'inventaire
+    def generer_numero_inventaire(self):
+        """Génère le prochain numéro disponible de type PCD-XXXX."""
+        prefix = "PCD-"
+        
+        # On récupère la dernière pièce créée ayant un numéro d'inventaire
+        last_piece = PieceDetachee.objects.filter(
+            numero_inventaire__isnull=False
+        ).exclude(
+            numero_inventaire=''
+        ).order_by('-numero_inventaire').first()
+        
+        if last_piece and last_piece.numero_inventaire.startswith(prefix):
+            try:
+                # On extrait les 4 chiffres et on ajoute 1
+                last_num = int(last_piece.numero_inventaire.split('-')[-1])
+                new_num = last_num + 1
+            except (ValueError, IndexError):
+                new_num = 1
+        else:
+            new_num = 1
+            
+        return f"{prefix}{new_num:04d}"
+
+    # ----- Surcharge de la sauvegarde
+    def save(self, *args, **kwargs):
+        # UNIQUEMENT si le champ est vide (None ou ''), on génère un numéro.
+        # Si l'utilisateur a volontairement laissé vide, on ne fait rien (reste NULL).
+        # Si l'utilisateur a mis un numéro manuellement, on ne fait rien (garde le sien).
+        if not self.numero_inventaire:
+            self.numero_inventaire = self.generer_numero_inventaire()
+        
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        if self.numero_inventaire_disque:
-            return f"[{self.numero_inventaire_disque}] {self.type_disque} {self.capacite_go}Go"
-        return f"{self.type_disque} {self.capacite_go}Go - {self.marque}"
+        origine = f" (ex-{self.pc_origine.numero_inventaire})" if self.pc_origine else ""
+        destination = f" → {self.pc_destination.numero_inventaire}" if self.pc_destination else ""
+        return f"{self.get_categorie_display()} - {self.specifications[:30]}{origine}{destination}"
 
     class Meta:
-        ordering = ['numero_inventaire_disque', 'type_disque']
-        verbose_name = "Disque Dur"
-        verbose_name_plural = "Disques Durs"
+        verbose_name = "Pièce Détachée"
+        verbose_name_plural = "Pièces Détachées"
+        ordering = ['-date_entree_stock']
+        indexes = [
+            models.Index(fields=['categorie', 'etat']), # Optimisation des recherches
+        ]
 
