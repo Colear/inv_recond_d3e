@@ -33,12 +33,30 @@ def modifier_materiel(request, pk):
     # === Traitement du POST ==========
     # Soumission du formulaire rempli
     if request.method == 'POST':
+
         action = request.POST.get('action')
+
+        # 1. TRAITEMENT SPÉCIAL : DÉMARRAGE DU DIAGNOSTIC
+        if action == 'start_diag':
+            # On ne valide PAS le formulaire ici. On change juste le statut.
+            materiel.statut = 'DIAGNOSTIC'
+            materiel.benevole_en_charge = request.user
+            materiel.date_prise_en_charge = timezone.now()
+            materiel.save()
+            
+            Intervention.objects.create(
+                materiel=materiel, benevole=request.user, type_action='DIAG',
+                commentaire="Début du diagnostic."
+            )
+            messages.success(request, "Diagnostic commencé. Vous pouvez maintenant saisir les informations.")
+            return redirect('modifier_materiel', pk=materiel.pk) # Redirection pour recharger la page en mode DIAGNOSTIC
+
+
+        # 2. CAS NORMAL (TOUS LES AUTRES ETATS)
         form = DiagnosticRepaForm(request.POST, instance=ordinateur, action=action)
         formset = DisqueFormSet(request.POST, instance=ordinateur)
         
         if form.is_valid() and formset.is_valid():
-            action = request.POST.get('action')
             instance = form.save(commit=False)
             
             # 1. Gestion Marque/Modèle (Champs manuels du template)
@@ -55,30 +73,9 @@ def modifier_materiel(request, pk):
             commentaire_intervention = ""
             type_action = "NOTE"
 
-            if action == 'start_diag':
-                # Transition : ENTREE -> DIAGNOSTIC
-                if materiel.statut == 'ENTREE':
-                    instance.statut = 'DIAGNOSTIC'
-                    instance.benevole_en_charge = benevole
-                    instance.date_prise_en_charge = timezone.now()
-                    type_action = 'DIAG'
-                    commentaire_intervention = "Début du diagnostic. Prise en charge du dossier."
-                    messages.success(request, "🔍 Diagnostic commencé. Vous êtes maintenant assigné à ce dossier.")
-                else:
-                    messages.warning(request, "Le statut ne permet pas de démarrer le diagnostic.")
-
-            elif action == 'save_exit':
-                # Sauvegarde brouillon : Reste en DIAGNOSTIC (ou passe de ENTREE à DIAGNOSTIC si premier sauvegarde)
-                if materiel.statut == 'ENTREE':
-                    instance.statut = 'DIAGNOSTIC'
-                    instance.benevole_en_charge = benevole
-                    instance.date_prise_en_charge = timezone.now()
-                    type_action = 'DIAG'
-                    commentaire_intervention = "Début du diagnostic (sauvegarde intermédiaire)."
-                else:
-                    type_action = 'NOTE'
-                    commentaire_intervention = "Sauvegarde intermédiaire du diagnostic."
-                
+            # --- SAVE_EXIT : sauvegarde intermédiaire du travail, on ne change pas le statut
+            if action == 'save_exit':
+                commentaire_intervention = "Sauvegarde intermédiaire du travail."
                 messages.info(request, "💾 Travail enregistré. Vous pouvez revenir plus tard.")
                 redirect_to_inventory = True # RETOUR LISTE
 
@@ -192,7 +189,7 @@ def modifier_materiel(request, pk):
                 type_action = 'REPA'
                 commentaire_intervention = "Réparation et configuration validées. Prêt à donner."
                 messages.success(request, "🎉 Matériel prêt à être donné !")
-                # redirect_to_inventory = False (Reste sur page, ou True si vous préférez)
+                redirect_to_inventory = True
 
             # 3. Sauvegarde Finale
             if instance.cout_reparation is None or instance.cout_reparation == '':
@@ -244,6 +241,22 @@ def modifier_materiel(request, pk):
         'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PERDU'],
         'show_recycle_button': statut in ['DIAGNOSTIC', 'REPARATION'], 
     }
+    display_flags = {
+        'show_start_button': statut == 'ENTREE',
+        'show_diag_actions': statut == 'DIAGNOSTIC',
+        'show_wait_actions': statut == 'ATTENTE_PIECES',
+        'show_repair_section': statut in ['REPARATION', 'PRET_A_DON'],
+        'show_validate_final_button': statut == 'REPARATION',
+        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PERDU'],
+        'show_recycle_button': statut in ['DIAGNOSTIC', 'REPARATION'],
+        
+        # La section Hardware est toujours visible (sauf si verrouillé), mais repliée en mode Réparation
+        'hardware_collapsed': statut in ['REPARATION', 'PRET_A_DON'], 
+        
+        # La section Software est invisible en mode Diagnostic/Entrée/Attente, visible sinon
+        'software_visible': statut in ['REPARATION', 'PRET_A_DON'],
+    }
+
 
     # On peut aussi préparer les textes dynamiques si besoin
     status_message = ""

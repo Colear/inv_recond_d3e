@@ -29,7 +29,6 @@ class DiagnosticRepaForm(forms.ModelForm):
             # Software - Configuration
             'linux_installe', 'linux_distro', 'date_maj_os',
             'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
-            'statut' 
         ]
         labels = {
             'ram_go': "RAM installée (en Go) ",
@@ -46,64 +45,24 @@ class DiagnosticRepaForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # Récupérer l'action (bouton cliqué) si passée en argument par la vue
-        self.action = kwargs.pop('action', None) 
+        self.action = kwargs.pop('action', None)
         super().__init__(*args, **kwargs)
 
         self.helper = FormHelper()
         self.helper.form_method = 'post'
-        self.helper.form_id = 'diagnostic-form'
+        self.helper.form_tag = False # IMPORTANT : On dit à Crispy de NE PAS générer la balise <form> ni les boutons
         
-        # Définition de la mise en page (Layout)
+        # Layout simplifié : juste l'ordre d'affichage des champs
+        # Plus de Row/Column, on fait ça dans le HTML
         self.helper.layout = Layout(
-            Fieldset("🔍 Diagnostic & Réparation Hardware",
-                Row(
-                    Column('cpu', css_class='col-md-6'),
-                    Column('cpu_score', css_class='col-md-6'),
-                ),
-                Row(
-                    Column('ram_go', css_class='col-md-3'),
-                    Column('ram_nb_barrettes', css_class='col-md-3'),
-                    Column('ram_type', css_class='col-md-3'),
-                    Column('a_carte_wifi', css_class='col-md-3'),
-                ),
-                Div(
-                    HTML("<h6 class='mt-3 text-primary'>Spécifique PC Portable</h6>"),
-                    Row(
-                        Column('a_alimentation', css_class='col-md-6'),
-                        Column('etat_batterie', css_class='col-md-6'),
-                    ),
-                    css_class='p-3 bg-light border rounded mt-2',
-                ),
-                Row(Column('rapport_diagnostic', css_class='col-12')),
-                Div(
-                    HTML("<h6 class='mt-4 text-warning'>🛠️ Réparation Matérielle</h6>"),
-                    Row(
-                        Column('pieces_changees', css_class='col-md-8'),
-                        Column('cout_reparation', css_class='col-md-4'),
-                    ),
-                    css_class='mt-3 p-3 border-top'
-                ),
-            ),
-            Fieldset("🐧 Configuration Logicielle (Linux)",
-                Row(Column('linux_installe', css_class='col-md-12')),
-                Div(
-                    Row(
-                        Column('linux_distro', css_class='col-md-4'),
-                        Column('date_maj_os', css_class='col-md-4'),
-                        Column('onlyoffice_installe', css_class='col-md-4'),
-                    ),
-                    Row(
-                        Column('logiciel_photo', css_class='col-md-4'),
-                        Column('media_player', css_class='col-md-4'),
-                        Column('firefox_configure', css_class='col-md-4'),
-                    ),
-                    css_class='mt-2',
-                ),
-                css_id="linux-config-section", # Important pour le JS
-            ),
-            'statut',
-            Submit('submit', 'Sauvegarder', css_class='btn btn-primary d-none') # Bouton caché, on utilise les nôtres dans le template
+            # Hardware
+            'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 
+            'a_carte_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
+            'rapport_diagnostic', 'a_alimentation', 'etat_batterie',
+            'pieces_changees', 'cout_reparation',
+            # Software
+            'linux_installe', 'linux_distro', 'date_maj_os',
+            'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
         )
 
 
@@ -148,6 +107,7 @@ DisqueFormSet = inlineformset_factory(
         'type_disque': forms.Select(attrs={'class': 'form-select form-select-sm'}),
         'capacite_go': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Go'}),
         'marque': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
+        'modele': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
         'est_sain': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         'contient_donnees': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         'numero_inventaire_disque': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'DSK-####'}),
