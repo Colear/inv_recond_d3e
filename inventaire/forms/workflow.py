@@ -2,8 +2,7 @@ from django import forms
 from django.forms import inlineformset_factory
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Fieldset, Submit, HTML, Div, Field
-from ..models import Ordinateur, DisqueDur
-
+from ..models import Ordinateur
 
 
 """====== DiagnosticRepa ======================================================

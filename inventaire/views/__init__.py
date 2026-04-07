@@ -1,4 +1,4 @@
-from .auth import (
+""" from .auth import (
     CustomLoginView,
     CustomLogoutView,
 )
@@ -26,4 +26,4 @@ from .dons import (
 
 from .rapports import (
     rapport_activite_pdf,
-)
+) """

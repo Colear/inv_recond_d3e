@@ -223,14 +223,20 @@ class Materiel(models.Model):
         return f"{self.numero_inventaire} - {self.get_type_materiel_display()} ({self.marque} {self.modele})"
 
     # Surcharge de la fonction de sauvegarde avec :
-    #   - si passage en DONNE ou RECYCLAGE :
-    #     - renseignement auto de la date de sortie à la date du jour si info non fournie
-    #     - renseignement auto du poid de sortie égal à poid d'entrée si non fourni
     def save(self, *args, **kwargs):
-        if self.statut in ['DONNE', 'RECYCLAGE'] and not self.date_sortie:
-            self.date_sortie = timezone.now()
-            if not self.poids_sortie_kg:
-                self.poids_sortie_kg = self.poids_entree_kg            
+        # 1. Génération automatique du numéro d'inventaire si vide
+        if not self.numero_inventaire:
+            self.numero_inventaire = self.generer_numero_inventaire()
+        
+        # 2. Gestion automatique de la sortie (Don/Recyclage)
+        if self.statut in ['DONNE', 'RECYCLAGE']:
+            if not self.date_sortie:
+                self.date_sortie = timezone.now()
+            # On ne force le poids de sortie que s'il est vraiment nul/absent
+            # Cela laisse la possibilité de le modifier manuellement si besoin (ex: pièces retirées)
+            if self.poids_sortie_kg is None or self.poids_sortie_kg == 0:
+                self.poids_sortie_kg = self.poids_entree_kg
+            
         super().save(*args, **kwargs)
 
     # Génération du numéro d'inventaire
