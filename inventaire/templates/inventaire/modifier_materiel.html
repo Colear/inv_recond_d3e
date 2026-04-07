@@ -7,7 +7,6 @@
 
 {% block contenu %}
 <div class="container-fluid">
-    <!-- En-tête (inchangé) -->
     <div class="row mb-4">
         <div class="col-md-8">
             <h2>🔧 {{ materiel.marque }} {{ materiel.modele }} <small class="text-muted">({{ materiel.numero_inventaire }})</small></h2>
@@ -27,23 +26,28 @@
 
         {% if not display.is_locked %}
 
+            <!-- ======================================================================= -->
+            <!-- CAS PARTICULIER : le diagnostic n'a pas encore commencé                 -->
+            <!-- ======================================================================= -->
             {% if materiel.statut == 'ENTREE' %}
                 <!-- CAS 1 : On n'a pas encore commencé. On affiche juste le bouton d'entrée. -->
                 <div class="alert alert-info text-center py-5">
                     <h3>📋 Diagnostic en attente</h3>
                     <p class="lead">Ce matériel vient d'entrer en stock. Aucune donnée technique n'a encore été saisie.</p>
-                    <form method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="start_diag">
-                        <button type="submit" class="btn btn-primary btn-lg mt-3">
-                            🚀 Commencer le diagnostic (Prendre en charge)
-                        </button>
-                    </form>
+                    <input type="hidden" name="action" value="start_diag">                   
+                    <button type="submit" class="btn btn-primary btn-lg mt-3">
+                        🚀 Commencer le diagnostic (Prendre en charge)
+                    </button>
                 </div>
 
+
+
+            <!-- ======================================================================= -->
+            <!-- TOUS LES AUTRES CAS                                                     -->
+            <!-- ======================================================================= -->            
             {% else %}
-                <!-- ACCORDION BOOTSTRAP POUR LE REPLIEMENT -->
                 <div class="accordion mb-4" id="accordionWorkflow">
+                    
                     
                     <!-- ======================================================================= -->
                     <!-- SECTION 1 : HARDWARE (Toujours présente si non verrouillé)              -->
@@ -67,27 +71,45 @@
                             aria-labelledby="headingHardware" 
                             data-bs-parent="#accordionWorkflow">
                             <div class="accordion-body">
-                                <!-- Grille Bootstrap (inchangée) -->
+
+                                <!-- Grille Bootstrap -->
                                 <div class="row g-3">
-                                    <div class="col-md-4">{{ form.categorie|as_crispy_field }}</div>
-                                    <div class="col-md-5">{{ form.cpu|as_crispy_field }}</div>
+                                    <!-- general -->
+                                    <div class="col-md-6">{{ form.categorie|as_crispy_field }}</div>
+                                    <div class="w-100 d-none d-md-block"></div>
+
+                                    <!-- hardware -->
+                                    <h6 class="text-primary border-bottom pb-2">⚙️ Hardware</h6>
+                                    <div class="col-md-4">{{ form.cpu|as_crispy_field }}</div>
                                     <div class="col-md-3">{{ form.cpu_score|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.ram_go|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.ram_nb_barrettes|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.ram_type|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.a_carte_wifi|as_crispy_field }}</div>
+                                    <div class="col-md-5 d-flex align-items-center">
+                                        Consultez le site https://www.cpubenchmark.net/cpu-list/ pour obtenir le score. S'il est inférieur à 800 l'ordinateur sera à recycler.
+                                    </div>
+                                    <div class="col-md-4">{{ form.ram_go|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.ram_nb_barrettes|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.ram_type|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.statut_wifi|as_crispy_field }}</div>
+                                    <div class="col-md-4 d-flex align-items-end justify-content-end">{{ form.a_carte_graphique_dediee|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.modele_gpu|as_crispy_field }}</div>
                                     
+                                    <!-- disques -->
+                                    <h6 class="text-primary border-bottom pb-2">💽 Disques</h6> 
+                                    <div class="col-md-4">{{ form.disque_principal_type|as_crispy_field }}</div> 
+                                    <div class="col-md-2">{{ form.disque_principal_go|as_crispy_field }}</div> 
+                                    <div class="col-md-4">{{ form.disque_secondaire_type|as_crispy_field }}</div>
+                                    <div class="col-md-2">{{ form.disque_secondaire_go|as_crispy_field }}</div>
+
+                                    <!-- portable -->
                                     <div class="col-12 mt-4 portable-section-wrapper fade-section">
                                         <h6 class="text-primary border-bottom pb-2">💻 Spécifique PC Portable</h6>
-                                        <div class="col-md-6">{{ form.a_alimentation|as_crispy_field }}</div>
-                                        <div class="col-md-6">{{ form.etat_batterie|as_crispy_field }}</div>
+                                        <div class="row g-3">
+                                            <div class="col-md-4 d-flex align-items-end justify-content-end">{{ form.a_alimentation|as_crispy_field }}</div>
+                                            <div class="col-md-4">{{ form.etat_batterie|as_crispy_field }}</div>
+                                            <div class="col-md-4">{{ form.ecran_diagonale_pouces|as_crispy_field }}</div>
+                                        </div>
                                     </div>
 
                                     <div class="col-12 mt-3">{{ form.rapport_diagnostic|as_crispy_field }}</div>
-                                    
-                                    <div class="col-12 mt-4"><h6 class="text-warning border-bottom pb-2">🛠️ Réparation Matérielle</h6></div>
-                                    <div class="col-md-8">{{ form.pieces_changees|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.cout_reparation|as_crispy_field }}</div>
                                 </div>
                             </div>
                         </div>
@@ -132,64 +154,8 @@
 
                 </div> <!-- Fin Accordéon -->
 
-
                 <!-- ======================================================================= -->
-                <!-- SECTION 3 : DISQUES                                                     -->
-                <!-- ======================================================================= -->
-                 <div class="row g-3" id="disk-formset-container">
-                    {{ formset.management_form }}
-                    
-                    {% for disk_form in formset %}
-                    <div class="col-12 col-md-6 col-lg-4 disk-row {% if forloop.last and disk_form.instance.pk is None %}empty-form{% endif %}">
-                        <div class="card h-100 border-light shadow-sm bg-light">
-                            <div class="card-header d-flex justify-content-between align-items-center bg-white">
-                                <span class="fw-bold text-primary">
-                                    💾 Disque #{{ forloop.counter }}
-                                    {% if disk_form.numero_inventaire_disque.value %}
-                                        <small class="text-muted ms-2">({{ disk_form.numero_inventaire_disque.value }})</small>
-                                    {% endif %}
-                                </span>
-                                <!-- Bouton Supprimer bien visible -->
-                                <div class="form-check form-switch">
-                                    {{ disk_form.DELETE }}
-                                    <label class="form-check-label text-danger" for="{{ disk_form.DELETE.id_for_label }}">
-                                        🗑️ Suppr.
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <!-- Champs empilés verticalement, parfaits pour mobile -->
-                                <div class="mb-2">
-                                    {{ disk_form.type_disque|as_crispy_field }}
-                                </div>
-                                <div class="mb-2">
-                                    {{ disk_form.capacite_go|as_crispy_field }}
-                                </div>
-                                <!-- Marque/Modèle en petits ou sur une ligne si besoin -->
-                                <div class="row g-2">
-                                    <div class="col-6">{{ disk_form.marque|as_crispy_field }}</div>
-                                    <div class="col-6">{{ disk_form.modele|as_crispy_field }}</div>
-                                </div>
-                                <div class="mt-2">
-                                    {{ disk_form.numero_inventaire_disque|as_crispy_field }}
-                                </div>
-                                <div class="row g-2 mt-2">
-                                    <div class="col-6">{{ disk_form.est_sain|as_crispy_field }}</div>
-                                    <div class="col-6">{{ disk_form.contient_donnees|as_crispy_field }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <button type="button" class="btn btn-outline-primary mt-3 mb-3" id="add-disk-btn">
-                    + Ajouter un disque
-                </button>            
-
-
-                <!-- ======================================================================= -->
-                <!-- ZONE 4 : LES BOUTONS D'ACTION                                           -->
+                <!-- ZONE 3 : LES BOUTONS D'ACTION                                           -->
                 <!-- ======================================================================= -->
                 <div class="card border-warning mb-4">
                     <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3 bg-light">
@@ -292,7 +258,7 @@
 
 
     <!-- ======================================================================= -->
-    <!-- ZONE 5 : HISTORIQUE DES INTERVENTIONS                                   -->
+    <!-- ZONE 4 : HISTORIQUE DES INTERVENTIONS                                   -->
     <!-- ======================================================================= -->
     <div class="card mt-4 bg-light">
         <div class="card-header">
@@ -328,96 +294,10 @@
 <!-- ======================================================================= -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const formsetPrefix = "{{ formset.prefix }}";
-    const container = document.querySelector("#disk-formset-container");
-    const totalFormsInput = document.querySelector(`#id_${formsetPrefix}-TOTAL_FORMS`);
-    const addBtn = document.getElementById("add-disk-btn");
-
-    if (addBtn && container && totalFormsInput) {
-        addBtn.addEventListener('click', function() {
-            const currentTotal = parseInt(totalFormsInput.value);
-            const emptyForm = document.querySelector(".empty-form");
-            
-            if (!emptyForm) return;
-
-            // On clone la carte vide
-            const newCard = emptyForm.cloneNode(true);
-            newCard.classList.remove("empty-form");
-            
-            // Mise à jour des index (ID, name, for)
-            // Cette regex remplace -0- par -X-, -1- par -X-, etc.
-            newCard.innerHTML = newCard.innerHTML.replace(
-                new RegExp(`${formsetPrefix}-(\\d+|__prefix__)`, 'g'),
-                `${formsetPrefix}-${currentTotal}`
-            );
-            
-            // Reset des valeurs
-            const inputs = newCard.querySelectorAll("input, select");
-            inputs.forEach(input => {
-                if (input.type === 'checkbox') input.checked = false;
-                else input.value = "";
-            });
-            
-            // Mise à jour du titre "Disque #X"
-            const titleSpan = newCard.querySelector(".card-header span");
-            if (titleSpan) {
-                // On remplace le texte par "Disque #N" où N est currentTotal + 1 
-                titleSpan.innerHTML = `💾 Disque #${currentTotal + 1} <small class="text-muted ms-2"></small>`;
-            }
-
-            container.appendChild(newCard);
-            totalFormsInput.value = currentTotal + 1;
-
-            // On récupère LA NOUVELLE case à cocher dans la nouvelle carte
-            const newCheckbox = newCard.querySelector('input[name$="-DELETE"]');
-    
-            // On lui applique manuellement l'effet grâce à notre fonction utilitaire
-            if (newCheckbox) {
-                initDeleteEffect(newCheckbox);
-            }
-        });
-    }
-
-    // 1. On sélectionne TOUTES les cases DELETE existantes au chargement de la page
-    const deleteCheckboxes = document.querySelectorAll('input[name$="-DELETE"]');
-    
-    // 2. On boucle sur chacune pour lui ajouter l'effet de grisé
-    deleteCheckboxes.forEach(function(cb) {
-        initDeleteEffect(cb);
-    });
-
-    // 3. IMPORTANT : Il faut aussi le faire pour les NOUVELLES cases créées via le bouton "+"
-    // Modifiez votre fonction de clonage (addBtn.addEventListener) pour appeler aussi initDeleteEffect
-    // sur la nouvelle case créée. (Voir plus bas)
-
-    // ============================================================
-    // Fonction utilitaire pour attacher l'effet
-    // ============================================================
-    function initDeleteEffect(checkbox) {
-        checkbox.addEventListener('change', function() {
-            // On trouve la carte parente la plus proche
-            const card = this.closest('.card');
-            if (card) {
-                if (this.checked) {
-                    card.style.opacity = '0.5';
-                    card.style.backgroundColor = '#f8d7da'; // Optionnel : fond légèrement rouge
-                } else {
-                    card.style.opacity = '1';
-                    card.style.backgroundColor = ''; // Retour à la normale
-                }
-            }
-        });
-        
-        // Optionnel : Appliquer l'effet immédiatement si la case est déjà cochée (ex: erreur de validation)
-        if (checkbox.checked) {
-            const card = checkbox.closest('.card');
-            if (card) card.style.opacity = '0.5';
-        }
-    }
 
 
     // ============================================================
-    // Gestion de la partie dédiée au portables dans le hardware
+    // Gestion de la partie dédiée aux portables dans le hardware
     // ============================================================
     const categorieSelect = document.getElementById('id_categorie');
     const portableSection = document.querySelector('.portable-section-wrapper'); 
@@ -452,9 +332,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 2. Écouter les changements (si l'utilisateur corrige la catégorie)
         categorieSelect.addEventListener('change', togglePortableSection);
     }
-
-
-
 
 });
 </script>

@@ -22,19 +22,35 @@ class DiagnosticRepaForm(forms.ModelForm):
             'categorie',
             # Hardware - Diagnostic
             'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type',
-            'a_carte_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
+            'statut_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
             'rapport_diagnostic',
-            # Hardware - Réparation
-            'pieces_changees', 'cout_reparation',
-            'a_alimentation', 'etat_batterie', # Champs Portables
+            # Hardware - Disques
+            'disque_principal_type', 'disque_principal_go',
+            'disque_secondaire_type', 'disque_secondaire_go',
+            # Hardware - Portables
+            'a_alimentation', 'etat_batterie', 'ecran_diagonale_pouces',
             # Software - Configuration
             'linux_installe', 'linux_distro', 'date_maj_os',
             'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
         ]
         labels = {
+            'categorie': "Catégorie ",
+            'cpu': "CPU ",
+            'cpu_score': "Score CPU ",
             'ram_go': "RAM installée (en Go) ",
-            'ram_nb_barrettes': "Nb de barrettes",
-            'ram_type': "Type de RAM",
+            'ram_nb_barrettes': "Nb de barrettes ",
+            'ram_type': "Type de RAM ",
+            'statut_wifi': "WiFi ? ",
+            'a_carte_graphique_dediee': "Carte graphique ?  ",
+            'modele_gpu': "... modèle",
+            'disque_principal_type': "Disque 1: type ",
+            'disque_principal_go': "... taille (Go) ",
+            'disque_secondaire_type': "Disque 2: type",
+            'disque_secondaire_go': "... taille (Go)",
+            'a_alimentation': "Alimentation ?",
+            'etat_batterie': "Etat de la batterie ",
+            'ecran_diagonale_pouces': "Diagonale d'écran",
+            'rapport_diagnostic': "Rapport de diagnostic "
         }
         widgets = {
             'cpu': forms.TextInput(attrs={'placeholder': 'Ex: Intel i5-8500'}),
@@ -43,6 +59,10 @@ class DiagnosticRepaForm(forms.ModelForm):
             'etat_batterie': forms.Select(attrs={'class': 'form-select'}),
             'linux_distro': forms.Select(attrs={'class': 'form-select'}),
             'date_maj_os': forms.DateInput(attrs={'type': 'date'}),
+            'disque_principal_type': forms.Select(attrs={'class': 'form-select'}),
+            'disque_secondaire_type': forms.Select(attrs={'class': 'form-select'}),
+            'disque_principal_go': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 500'}),
+            'disque_secondaire_go': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 500'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -58,9 +78,8 @@ class DiagnosticRepaForm(forms.ModelForm):
         self.helper.layout = Layout(
             # Hardware
             'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 
-            'a_carte_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
+            'statut_wifi', 'disque_principal_type','disque_principal_go','disque_secondaire_type','disque_secondaire_go','a_carte_graphique_dediee', 'modele_gpu',
             'rapport_diagnostic', 'a_alimentation', 'etat_batterie',
-            'pieces_changees', 'cout_reparation',
             # Software
             'linux_installe', 'linux_distro', 'date_maj_os',
             'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
@@ -96,23 +115,3 @@ class DiagnosticRepaForm(forms.ModelForm):
         
         return cleaned_data
 
-
-
-# --- 2. Formset pour les Disques Durs ---
-# Permet d'ajouter/supprimer dynamiquement des lignes de disques
-DisqueFormSet = inlineformset_factory(
-    Ordinateur, 
-    DisqueDur,
-    fields=['type_disque', 'capacite_go', 'marque', 'modele', 'numero_serie', 'est_sain', 'contient_donnees', 'numero_inventaire_disque'],
-    extra=1, # Nombre de lignes vides par défaut
-    can_delete=True, # Permet de cocher une case pour supprimer un disque
-    widgets={
-        'type_disque': forms.Select(attrs={'class': 'form-select form-select-sm'}),
-        'capacite_go': forms.NumberInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'Go'}),
-        'marque': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-        'modele': forms.TextInput(attrs={'class': 'form-control form-control-sm'}),
-        'est_sain': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        'contient_donnees': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        'numero_inventaire_disque': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'placeholder': 'DSK-####'}),
-    }
-)

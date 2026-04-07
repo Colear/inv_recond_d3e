@@ -12,7 +12,6 @@ from .stock import (
 # ==============================================================================
 from .workflow import (
     DiagnosticRepaForm,
-    DisqueFormSet,
     # Vous pourrez ajouter ici des formulaires spécifiques pour les écrans/périphériques si besoin
 )
 

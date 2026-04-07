@@ -204,7 +204,7 @@ class Materiel(models.Model):
     # Flux & Poids
     date_entree = models.DateField(default=timezone.now)
     poids_entree_kg = models.DecimalField(max_digits=6, decimal_places=3, default=0)
-    rapport_diagnostic = models.TextField(blank=True)
+    rapport_diagnostic = models.TextField()
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='ENTREE')
     
     # Gestion Bénévole
@@ -373,19 +373,15 @@ class Ordinateur(Materiel):
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES, default='FIXE')
     
     # ----- CPU & RAM Détaillée
-    cpu = models.CharField(max_length=100, blank=True)
-    cpu_score = models.PositiveIntegerField(
-        null=True, 
-        blank=True, 
-        help_text="<a href=\"https://www.cpubenchmark.net/cpu-list/\">Indice PassMark</a>, si < 800 recyclage."
-    )
+    cpu = models.CharField(max_length=100)
+    cpu_score = models.PositiveIntegerField(default=0)
     ram_go = models.PositiveIntegerField(default=0)
     ram_nb_barrettes = models.PositiveIntegerField(default=1)
     ram_type = models.CharField(max_length=20, choices=RAM_CHOICES, default='INCONNUE')
 
     # ----- Disques 
-    disque_principal_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, blank=True, default='')    
-    disque_principal_go = models.PositiveIntegerField(default=0, blank=True)
+    disque_principal_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, default='')    
+    disque_principal_go = models.PositiveIntegerField(default=0)
     disque_secondaire_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, blank=True, default='')    
     disque_secondaire_go = models.PositiveIntegerField(default=0, blank=True)
     
@@ -398,7 +394,7 @@ class Ordinateur(Materiel):
     # ----- Autres infos hardware
     a_carte_graphique_dediee = models.BooleanField(default=False)
     modele_gpu = models.CharField(max_length=100, blank=True)   
-    statut_wifi = models.CharField(max_length=20, choices=WIFI_CHOICES, default='NON', help_text="Type de connexion WiFi disponible")
+    statut_wifi = models.CharField(max_length=20, choices=WIFI_CHOICES, default='NON')
 
     # ----- Linux & Logiciels
     linux_installe = models.BooleanField(default=False)
@@ -408,10 +404,6 @@ class Ordinateur(Materiel):
     logiciel_photo = models.CharField(max_length=50, blank=True, choices=PHOTO_CHOICES)
     media_player = models.CharField(max_length=50, blank=True, choices=MEDIA_CHOICES)
     firefox_configure = models.BooleanField(default=False)    
-
-    # ----- Réparation
-    pieces_changees = models.TextField(blank=True)
-    cout_reparation = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
 
     # On force le type pour éviter les problèmes d'héritage (valeur par défaut dans la classe parente)
     def save(self, *args, **kwargs):
@@ -508,7 +500,13 @@ class PieceDetachee(models.Model):
         default=0, 
         help_text="Poids de la pièce seule (pour bilan matière précis)"
     )
-    
+    cout_achat = models.DecimalField(
+        max_digits=6, 
+        decimal_places=2, 
+        default=0.00,
+        help_text="Coût d'achat de la pièce (0 si issue du recyclage/cannibalisation)."
+    )
+
     # ----- Dates
     date_entree_stock = models.DateTimeField(auto_now_add=True)
     date_sortie_stock = models.DateTimeField(

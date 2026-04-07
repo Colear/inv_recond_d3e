@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from ..forms import DiagnosticRepaForm, DisqueFormSet
+from ..forms import DiagnosticRepaForm
 from ..decorators import benevole_actif_required
 from ..models import Materiel, Marque, Intervention
 
@@ -54,9 +54,8 @@ def modifier_materiel(request, pk):
 
         # 2. CAS NORMAL (TOUS LES AUTRES ETATS)
         form = DiagnosticRepaForm(request.POST, instance=ordinateur, action=action)
-        formset = DisqueFormSet(request.POST, instance=ordinateur)
         
-        if form.is_valid() and formset.is_valid():
+        if form.is_valid():
             instance = form.save(commit=False)
             
             # 1. Gestion Marque/Modèle (Champs manuels du template)
@@ -196,7 +195,6 @@ def modifier_materiel(request, pk):
                 instance.cout_reparation = Decimal('0.00')
             
             instance.save()
-            formset.save()
 
             # 4. Création de l'historique (Intervention)
             if commentaire_intervention:
@@ -217,15 +215,12 @@ def modifier_materiel(request, pk):
             # Debug erreurs
             if not form.is_valid():
                 print(f"Erreurs Form : {form.errors}")
-            if not formset.is_valid():
-                print(f"Erreurs Formset : {formset.errors}")
             messages.error(request, "Une erreur est survenue dans le formulaire. Vérifiez les champs.")
 
     # === Traitement du GET ==========
     # Affichage du formulaire vide
     else:
         form = DiagnosticRepaForm(instance=ordinateur)
-        formset = DisqueFormSet(instance=ordinateur)
 
 
     # --- Gestion des boutons ----------
@@ -271,7 +266,6 @@ def modifier_materiel(request, pk):
         'materiel': materiel,
         'ordinateur': ordinateur,
         'form': form,
-        'formset': formset,
         'display': display_flags,
         'status_message': status_message,
     }

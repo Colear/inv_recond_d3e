@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.utils.html import format_html 
+from django.utils.html import format_html
+from django.db.models import Sum 
 from django.utils.safestring import mark_safe
 from django import forms
 from .models import (
@@ -27,10 +28,26 @@ class BenevoleForm(forms.ModelForm):
 @admin.register(Benevole)
 class BenevoleAdmin(admin.ModelAdmin):
     form = BenevoleForm
-    list_display = ('user', 'telephone', 'actif', 'get_specialites_display')
+    list_display = ('user', 'get_prenom', 'get_groups_display', 'actif', 'get_specialites_display')
     list_filter = ('actif', 'specialites')
     search_fields = ('user__username', 'user__first_name', 'user__last_name')
     
+    def get_prenom(self, obj):
+        prenom = obj.user.first_name
+        if prenom:
+            return prenom
+        else:
+            return ''
+    get_prenom.short_description = "Prénom"
+    get_prenom.admin_order_field = 'user__first_name'
+
+    def get_groups_display(self, obj):
+        groups = obj.user.groups.all()
+        if not groups:
+            return "-"
+        return ", ".join([g.name for g in groups])
+    get_groups_display.short_description = "Groupes"
+
     def get_specialites_display(self, obj):
         if not obj.specialites:
             return "-"
@@ -93,10 +110,25 @@ class MaterielParentAdmin(admin.ModelAdmin):
 
 @admin.register(Ordinateur)
 class OrdinateurAdmin(MaterielParentAdmin):
-    list_display = ('numero_inventaire', 'categorie', 'marque', 'modele', 'cpu_score', 'statut', 'linux_installe_col', 'benevole_en_charge')
+
+    # Liste d'inventaire
+    list_display = ('numero_inventaire', 'categorie', 'marque', 'modele', 'cpu_score', 'ram_go', 'statut', 'cout_reparation_total_col', 'linux_installe_col', 'benevole_en_charge')
     list_filter = ('statut', 'categorie', 'marque', 'linux_installe')
     search_fields = ('numero_inventaire', 'marque__nom', 'modele', 'cpu', 'numero_serie')
 
+    # Calcul de la somme des coûts des pièces détachées liées à cet ordinateur
+    def cout_reparation_total_col(self, obj):
+        total = obj.pieces_installees.aggregate(total=Sum('cout_achat'))['total']
+        
+        if total is None:
+            return "0,00 €"
+        
+        return f"{total:.2f} €"
+    
+    cout_reparation_total_col.short_description = "Coût Pièces"
+    cout_reparation_total_col.admin_order_field = None 
+
+    # Fiche d'édition
     fieldsets = (
         ('Identification & Flux', {
             'fields': ('marque', 'modele', 'numero_serie', 'statut', 'date_entree', 'poids_entree_kg', 'provenance', 'provenance_precisions', 'get_categorie_provenance')
@@ -118,10 +150,6 @@ class OrdinateurAdmin(MaterielParentAdmin):
             'fields': ('linux_installe', 'linux_distro', 'date_maj_os', 'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure'),
             'classes': ('collapse',)
         }),
-        ('Gestion & Réparation', {
-            'fields': ('benevole_en_charge', 'date_prise_en_charge', 'pieces_changees', 'cout_reparation'),
-            'classes': ('collapse',)
-        }),
         ('Sortie (Don / Recyclage)', {
             'fields': ('beneficiaire', 'organisme_recyclage', 'poids_sortie_kg', 'date_sortie'),
             'classes': ('collapse',)
@@ -134,7 +162,7 @@ class OrdinateurAdmin(MaterielParentAdmin):
         return mark_safe('<span style="color:red;">✘ Non installé</span>')
     linux_installe_col.short_description = "État Linux"
 
-    # PAS DE save_model ICI -> Géré par le modèle
+
 
 @admin.register(Ecran)
 class EcranAdmin(MaterielParentAdmin):
@@ -164,12 +192,14 @@ class PeripheriqueAdmin(MaterielParentAdmin):
     )
     # PAS DE save_model ICI -> Géré par le modèle
 
+
+
 # ==============================================================================
-# PIÈCES DÉTACHÉES (NOUVEL AJOUT)
+# PIÈCES DÉTACHÉES
 # ==============================================================================
 @admin.register(PieceDetachee)
 class PieceDetacheeAdmin(admin.ModelAdmin):
-    list_display = ('numero_inventaire', 'categorie', 'specifications_courtes', 'etat', 'pc_origine_link', 'pc_destination_link', 'date_entree_stock')
+    list_display = ('numero_inventaire', 'categorie', 'specifications_courtes', 'etat', 'cout_achat', 'pc_destination_link', 'date_entree_stock')
     list_filter = ('categorie', 'etat', 'pc_origine', 'pc_destination')
     search_fields = ('numero_inventaire', 'marque', 'modele', 'specifications', 'pc_origine__numero_inventaire')
     
@@ -183,7 +213,7 @@ class PieceDetacheeAdmin(admin.ModelAdmin):
             'fields': ('pc_origine', 'pc_destination')
         }),
         ('État & Stock', {
-            'fields': ('etat', 'emplacement', 'poids_kg')
+            'fields': ('etat', 'emplacement', 'poids_kg', 'cout_achat')
         }),
         ('Dates', {
             'fields': ('date_entree_stock', 'date_sortie_stock'),
