@@ -12,7 +12,8 @@ from .stock import (
 # ==============================================================================
 from .workflow import (
     DiagnosticRepaForm,
-    # Vous pourrez ajouter ici des formulaires spécifiques pour les écrans/périphériques si besoin
+    DiagnosticEcranForm,
+    DiagnosticPeripheriqueForm,
 )
 
 # ==============================================================================

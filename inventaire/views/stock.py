@@ -198,9 +198,11 @@ def search_by_inv(request, numero_inv):
         # On essaie de trouver le matériel
         materiel = Materiel.objects.get(numero_inventaire=numero_inv)
         
-        # SUCCÈS : Redirection immédiate vers la fiche d'édition dans l'Admin
-        # return redirect('admin:inventaire_materiel_change', pk=materiel.pk)
-        return redirect('modifier_materiel', pk=materiel.pk)
+        # On route vers le formulaire adapté au type de matériel
+        if materiel.type_materiel == "PC":
+            return redirect('modifier_materiel', pk=materiel.pk)
+        else:
+            return redirect('modifier_ecran_periph', pk=materiel.pk)
         
     except Materiel.DoesNotExist:
         # ÉCHEC : On affiche simplement une page d'information

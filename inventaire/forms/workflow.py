@@ -2,7 +2,8 @@ from django import forms
 from django.forms import inlineformset_factory
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Fieldset, Submit, HTML, Div, Field
-from ..models import Ordinateur
+from ..models import Ordinateur, Ecran, Peripherique
+
 
 
 """====== DiagnosticRepa ======================================================
@@ -113,5 +114,117 @@ class DiagnosticRepaForm(forms.ModelForm):
         
         # Si l'action est 'wait_parts' ou 'save_exit', on ne bloque pas (champs optionnels)
         
+        return cleaned_data
+
+
+
+"""====== DiagnosticEcran =====================================================
+    Formulaire pour la mise en diagnostic des écrans
+============================================================================"""
+
+class DiagnosticEcranForm(forms.ModelForm):
+    class Meta:
+        model = Ecran
+        fields = ['diagonale_pouces', 'resolution', 'connectique', 'rapport_diagnostic']
+        widgets = {
+            'rapport_diagnostic': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'diagonale_pouces': forms.Select(attrs={'class': 'form-select'}),
+            'resolution': forms.TextInput(attrs={'class': 'form-control'}),
+            'connectique': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.action = kwargs.pop('action', None)
+        super().__init__(*args, **kwargs)
+
+        # le rapport de diag doit être optionnel pour permettre le workflow
+        self.fields['rapport_diagnostic'].required = False 
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Fieldset("Caractéristiques de l'écran",
+                Row(
+                    Column('diagonale_pouces', css_class='col-md-4'),
+                    Column('resolution', css_class='col-md-4'),
+                    Column('connectique', css_class='col-md-4'),
+                ),
+            ),
+            'rapport_diagnostic',
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        action = self.data.get('action')
+        
+        # Liste des actions qui exigent un rapport
+        actions_exigeantes = [
+            'validate_diag_ok', 
+            'validate_diag_parts', 
+            'validate_diag_recycle',
+            'wait_dismantling'
+        ]
+        
+        if action in actions_exigeantes:
+            if not cleaned_data.get('rapport_diagnostic'):
+                raise forms.ValidationError("Le rapport de diagnostic est obligatoire.")
+        return cleaned_data
+
+
+
+"""====== DiagnosticPeripherique ==============================================
+    Formulaire pour la mise en diagnostic des périphériques
+============================================================================"""
+
+class DiagnosticPeripheriqueForm(forms.ModelForm):
+    class Meta:
+        model = Peripherique
+        fields = ['type_periph', 'avec_cable', 'connectique', 'rapport_diagnostic']
+        widgets = {
+            'rapport_diagnostic': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'type_periph': forms.Select(attrs={'class': 'form-select'}),
+            'avec_cable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'connectique': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.action = kwargs.pop('action', None)
+        super().__init__(*args, **kwargs)
+        
+        # le rapport de diag doit être optionnel pour permettre le workflow
+        self.fields['rapport_diagnostic'].required = False 
+
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Fieldset("Caractéristiques du périphérique",
+                Row(
+                    Column('type_periph', css_class='col-md-6'),
+                    Column('avec_cable', css_class='col-md-6'),
+                ),
+                Row(Column('connectique', css_class='col-md-12')),
+            ),
+            'rapport_diagnostic',
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        action = self.data.get('action')
+        
+        # Liste des actions qui exigent un rapport
+        actions_exigeantes = [
+            'validate_diag_ok', 
+            'validate_diag_parts', 
+            'validate_diag_recycle',
+            'wait_dismantling'
+        ]
+        
+        if action in actions_exigeantes:
+            if not cleaned_data.get('rapport_diagnostic'):
+                raise forms.ValidationError("Le rapport de diagnostic est obligatoire.")
         return cleaned_data
 

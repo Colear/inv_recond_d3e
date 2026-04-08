@@ -17,6 +17,7 @@ from .stock import (
 
 from .workflow import (
     modifier_materiel,
+    modifier_materiel_simple,
 )
 
 from .dons import (

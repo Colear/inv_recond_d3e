@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from ..forms import DiagnosticRepaForm
+from ..forms import DiagnosticRepaForm, DiagnosticEcranForm, DiagnosticPeripheriqueForm
 from ..decorators import benevole_actif_required
 from ..models import Materiel, Marque, Intervention
 
@@ -270,4 +270,132 @@ def modifier_materiel(request, pk):
         'status_message': status_message,
     }
     return render(request, 'inventaire/modifier_materiel.html', context)
+
+
+
+@login_required
+@benevole_actif_required
+@permission_required('inventaire.change_materiel', raise_exception=True)
+def modifier_materiel_simple(request, pk):
+    materiel = get_object_or_404(Materiel, pk=pk)
+    
+    # 1. DÉTECTION DU TYPE ET SÉLECTION DU FORMULAIRE
+    form = None
+    type_appareil = ""
+    template_name = "inventaire/modifier_materiel_simple.html"
+    
+    if hasattr(materiel, 'ecran') and materiel.ecran:
+        form_class = DiagnosticEcranForm
+        instance_obj = materiel.ecran # On passe l'instance enfant au form
+        type_appareil = "Écran"
+    elif hasattr(materiel, 'peripherique') and materiel.peripherique:
+        form_class = DiagnosticPeripheriqueForm
+        instance_obj = materiel.peripherique
+        type_appareil = "Périphérique"
+    else:
+        messages.error(request, "Ce matériel n'est pas géré par ce workflow simplifié.")
+        return redirect('inventaire')
+
+    benevole = request.user
+    redirect_to_inventory = False
+
+    # 2. TRAITEMENT POST
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        # On instancie le formulaire spécifique avec l'instance enfant
+        form = form_class(request.POST, instance=instance_obj, action=action)
+        
+        if form.is_valid():
+            # Sauvegarde des champs spécifiques (diagonale, type_periph, etc.)
+            instance_enfant = form.save()
+            
+            # On récupère le parent pour gérer le statut et le rapport commun
+            # Le rapport_diagnostic est dans Materiel, mais comme on a hérité, 
+            # il faut parfois le sauver sur le parent explicitement si le form ne le couvre pas.
+            # Astuce : Dans nos forms, on a mis 'rapport_diagnostic' qui est dans Materiel.
+            # Django gère l'héritage, donc instance_enfant.save() met à jour aussi le parent.
+            # Mais pour être sûr pour le statut, on travaille sur 'materiel'.
+            
+            commentaire = ""
+            type_action = "NOTE"
+
+            if action == 'start_diag':
+                materiel.statut = 'DIAGNOSTIC'
+                materiel.benevole_en_charge = request.user
+                materiel.date_prise_en_charge = timezone.now()
+                materiel.save()
+                Intervention.objects.create(materiel=materiel, benevole=request.user, type_action='DIAG', commentaire="Début du diagnostic.")
+                messages.success(request, f"Diagnostic de l'{type_appareil} commencé.")
+                return redirect('modifier_ecran_periph', pk=materiel.pk)
+
+            elif action == 'validate_diag_ok':
+                materiel.statut = 'PRET_A_DON'
+                type_action = 'DIAG'
+                commentaire = "Diagnostic validé. Prêt à donner."
+                messages.success(request, "✅ Matériel validé pour le don.")
+                redirect_to_inventory = True
+
+            elif action == 'validate_diag_parts':
+                materiel.statut = 'ATTENTE_PIECES'
+                materiel.benevole_en_charge = None # Libération
+                type_action = 'NOTE'
+                commentaire = f"En attente de pièces. Raison : {materiel.rapport_diagnostic[:100]}"
+                messages.info(request, "⏳ En attente de pièces. Dossier libéré.")
+                redirect_to_inventory = True
+
+            elif action == 'validate_diag_recycle':
+                materiel.statut = 'RECYCLAGE'
+                type_action = 'SORTIE'
+                commentaire = "Décision de recyclage."
+                messages.warning(request, "♻️ Matériel envoyé au recyclage.")
+                redirect_to_inventory = True
+                
+            elif action == 'wait_dismantling':
+                materiel.statut = 'ATTENTE_DEMONTAGE'
+                materiel.benevole_en_charge = None
+                commentaire = "En attente de démontage."
+                redirect_to_inventory = True
+
+            elif action == 'save_exit':
+                commentaire = "Sauvegarde intermédiaire."
+                messages.info(request, "💾 Travail enregistré.")
+                redirect_to_inventory = True
+
+            # Sauvegarde finale du statut sur le parent
+            if commentaire:
+                materiel.save() 
+                Intervention.objects.create(
+                    materiel=materiel, benevole=benevole, type_action=type_action, commentaire=commentaire
+                )
+
+            if redirect_to_inventory:
+                return redirect('inventaire')
+            else:
+                return redirect('modifier_ecran_periph', pk=materiel.pk)
+        else:
+            messages.error(request, "Erreur dans le formulaire. Vérifiez les champs.")
+
+    # 3. TRAITEMENT GET (Affichage)
+    else:
+        # On instancie le formulaire spécifique avec l'instance enfant
+        form = form_class(instance=instance_obj)
+
+    # Préparation du contexte
+    statut = materiel.statut
+    display = {
+        'show_start': statut == 'ENTREE',
+        'show_actions': statut == 'DIAGNOSTIC',
+        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PRET_A_DON', 'ATTENTE_DEMONTAGE'],
+        'titre_type': type_appareil
+    }
+
+    context = {
+        'materiel': materiel,
+        'form': form, # Le bon formulaire (Ecran ou Periph) est déjà dans la variable
+        'display': display,
+        'type_appareil': type_appareil,
+        'template_name': template_name
+    }
+    return render(request, 'inventaire/modifier_materiel_simple.html', context)
 

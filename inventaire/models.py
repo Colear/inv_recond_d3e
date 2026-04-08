@@ -204,7 +204,7 @@ class Materiel(models.Model):
     # Flux & Poids
     date_entree = models.DateField(default=timezone.now)
     poids_entree_kg = models.DecimalField(max_digits=6, decimal_places=3, default=0)
-    rapport_diagnostic = models.TextField()
+    rapport_diagnostic = models.TextField(blank=True)
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='ENTREE')
     
     # Gestion Bénévole
