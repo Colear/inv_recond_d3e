@@ -15,5 +15,7 @@ lib/
 lib64
 pyvenv.cfg
 
-#Trucs obsolètes
-formulaires_old/
+# Reset de la base en mode dev
+fixtures_donnees_base.json
+reset_db.sh
+
