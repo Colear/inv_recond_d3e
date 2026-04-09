@@ -21,7 +21,7 @@ def modifier_materiel(request, pk):
 
     materiel = get_object_or_404(Materiel, pk=pk)
     
-    # Sécurité : Vérifier que c'est un ordinateur
+    # Ce formulaire ne traite que les ordis
     if not hasattr(materiel, 'ordinateur') or materiel.ordinateur is None:
         messages.error(request, "Ce matériel n'est pas un ordinateur.")
         return redirect('inventaire')
@@ -30,15 +30,15 @@ def modifier_materiel(request, pk):
     benevole = request.user
     redirect_to_inventory = False
 
+
     # === Traitement du POST ==========
-    # Soumission du formulaire rempli
     if request.method == 'POST':
 
         action = request.POST.get('action')
 
-        # 1. TRAITEMENT SPÉCIAL : DÉMARRAGE DU DIAGNOSTIC
+        # ----- Cas particulier : démarrage du diagnostic ----------
+        # On n'appelle pas le formulaire, on change juste le statut
         if action == 'start_diag':
-            # On ne valide PAS le formulaire ici. On change juste le statut.
             materiel.statut = 'DIAGNOSTIC'
             materiel.benevole_en_charge = request.user
             materiel.date_prise_en_charge = timezone.now()
@@ -52,13 +52,14 @@ def modifier_materiel(request, pk):
             return redirect('modifier_materiel', pk=materiel.pk) # Redirection pour recharger la page en mode DIAGNOSTIC
 
 
-        # 2. CAS NORMAL (TOUS LES AUTRES ETATS)
+        # ----- Tous les autres états ----------
+        # Utilisation du formulaire
         form = DiagnosticRepaForm(request.POST, instance=ordinateur, action=action)
         
         if form.is_valid():
             instance = form.save(commit=False)
             
-            # 1. Gestion Marque/Modèle (Champs manuels du template)
+            # Gestion Marque/Modèle (Champs manuels du template)
             nom_marque = request.POST.get('input_marque', '').strip()
             nom_modele = request.POST.get('input_modele', '').strip()
             if nom_marque:
@@ -68,135 +69,96 @@ def modifier_materiel(request, pk):
                 instance.materiel_ptr.modele = nom_modele
             instance.materiel_ptr.save()
 
-            # 2. Logique des Actions
+            # Logique des Actions :
             commentaire_intervention = ""
             type_action = "NOTE"
 
-            # --- SAVE_EXIT : sauvegarde intermédiaire du travail, on ne change pas le statut
+            # 1. Sauvegarde du travail sans passer à l'étape suivante
             if action == 'save_exit':
                 commentaire_intervention = "Sauvegarde intermédiaire du travail."
                 messages.info(request, "💾 Travail enregistré. Vous pouvez revenir plus tard.")
-                redirect_to_inventory = True # RETOUR LISTE
+                redirect_to_inventory = True 
 
+            # 2. Validation du diagnostic et libération du dossier
             elif action == 'validate_diag_release':
-                # Validation + Libération : DIAGNOSTIC -> REPARATION (Sans bénévole)
-                instance.statut = 'REPARATION'
-                instance.benevole_en_charge = None # On libère
+                instance.statut = 'CONFIGURATION'
+                instance.benevole_en_charge = None
                 type_action = 'TRANSFERT'
                 commentaire_intervention = "Diagnostic validé. Dossier relâché pour la suite (spécialiste)."
                 messages.success(request, "👋 Diagnostic validé et dossier relâché. Retour à l'inventaire.")
-                redirect_to_inventory = True # RETOUR LISTE
+                redirect_to_inventory = True 
 
+            # 3. Validation du diagnostic et passage en configuration 
             elif action == 'validate_diag_repa':
-                # Validation + Continuité : DIAGNOSTIC -> REPARATION (Avec bénévole)
                 if not instance.benevole_en_charge:
                     instance.benevole_en_charge = benevole
                     instance.date_prise_en_charge = timezone.now()
-                instance.statut = 'REPARATION'
+                instance.statut = 'CONFIGURATION'
                 type_action = 'DIAG'
                 commentaire_intervention = "Diagnostic validé. Passage en phase de réparation/configuration."
                 messages.success(request, "✅ Diagnostic validé. Vous pouvez maintenant configurer le logiciel.")
-                # redirect_to_inventory = False (Reste sur page)
+                redirect_to_inventory = False 
 
+            # 4. Recyclage - ordinateur KO ou performances insuffisantes
+            # ATTENTION : dans ce cas rien n'est retiré du PC (poids d'entrée = poids de sortie) !
+            #             Dans le cas contraire utiliser le passage en attente démontage
             elif action == 'recycle_now':
-                # Recyclage immédiat : -> RECYCLAGE
                 instance.statut = 'RECYCLAGE'
                 if not instance.benevole_en_charge:
                     instance.benevole_en_charge = benevole
                 type_action = 'SORTIE'
-                raison = instance.rapport_diagnostic[:100] or "Non réparable (Décision diagnostic)"
+                raison = instance.rapport_diagnostic[:100] or "Non réparable (décision diagnostic)"
                 commentaire_intervention = f"Décision de recyclage : {raison}"
                 messages.warning(request, "♻️ Matériel envoyé au recyclage.")
-                redirect_to_inventory = True # RETOUR LISTE
+                redirect_to_inventory = True
 
+            # 5. Attente de démontage - l'ordinateur doit être recyclé mais on va retirer des pièces avant
+            elif action == 'wait_dismantling':
+                materiel.statut = 'POUR_PIECE'
+                materiel.benevole_en_charge = None
+                raison = instance.rapport_diagnostic[:100] or "Non réparable (décision diagnostic)"
+                commentaire_intervention = f"Décision de recyclage avec récupération de pièces : {raison}"
+                messages.warning(request, "♻️ Matériel envoyé au recyclage avec récupération de pièces préalables.")
+                redirect_to_inventory = True
+
+            # 6. Passage en attente de pièces 
             elif action == 'wait_parts':
-                # Transition : -> ATTENTE_PIECES
                 instance.statut = 'ATTENTE_PIECES'
-                
-                # LIBÉRATION DU BÉNÉVOLE
-                # On note qui a fait la mise en attente dans l'historique, mais on vide le champ "en charge"
-                ancien_benevole = instance.benevole_en_charge
-                instance.benevole_en_charge = None 
-                # On ne touche pas à date_prise_en_charge pour garder la trace de la première prise en charge
-                
+                instance.benevole_en_charge = None                
                 raison = instance.rapport_diagnostic[:100] or "En attente de composants"
-                Intervention.objects.create(
-                    materiel=materiel,
-                    benevole=benevole, # Celui qui clique maintenant
-                    type_action='NOTE',
-                    commentaire=f"Mise en attente de pièces par {benevole.get_full_name()}. (Dossier libéré). Raison : {raison}"
-                )
+                commentaire_intervention = f"Mise en attente de pièces par {benevole.get_full_name()}. Raison : {raison}"
                 messages.info(request, "⏳ Matériel placé en attente de pièces. Le dossier a été libéré pour un futur spécialiste.")
                 redirect_to_inventory = True
 
+            # 7. Passage de attente de pièces à configuration (l'ordi a été réparé) en gardant le dossier
             elif action == 'reactivate_keep':
-                # Option 1 : Réactiver et Garder (Je fais tout : Hardware + Software)
-                if materiel.statut == 'ATTENTE_PIECES':
-                    instance.statut = 'REPARATION'
-                    instance.benevole_en_charge = benevole # Je me l'attribue
-                    instance.date_prise_en_charge = timezone.now()
-                    
-                    Intervention.objects.create(
-                        materiel=materiel,
-                        benevole=benevole,
-                        type_action='TRANSFERT',
-                        commentaire="Réactivation et prise en charge complète (Hardware + Software)."
-                    )
-                    messages.success(request, "✅ Matériel réactivé. Vous restez en charge du dossier pour la configuration.")
-                    # redirect_to_inventory = False (Reste sur la page)
+                instance.statut = 'CONFIGURATION'
+                instance.benevole_en_charge = benevole # Je me l'attribue
+                instance.date_prise_en_charge = timezone.now()
+                commentaire_intervention = "Réactivation et prise en charge complète (Hardware + Software)."
+                messages.success(request, "✅ Matériel réactivé. Vous restez en charge du dossier pour la configuration.")
+                redirect_to_inventory = False
 
+            # 8. Passage de attente de pièces à configuration (l'ordi a été réparé) en relachant le dossier
             elif action == 'reactivate_release':
-                # Option 2 : Réactiver et Relâcher (Je fais le Hardware, je laisse le Software à un autre)
-                if materiel.statut == 'ATTENTE_PIECES':
-                    instance.statut = 'REPARATION'
-                    instance.benevole_en_charge = None # Je libère le dossier pour la suite
-                    
-                    Intervention.objects.create(
-                        materiel=materiel,
-                        benevole=benevole,
-                        type_action='TRANSFERT',
-                        commentaire=f"Réactivation Hardware par {benevole.get_full_name()}. Pièces installées. Dossier relâché pour configuration Linux."
-                    )
-                    messages.success(request, "🔧 Matériel réactivé (Hardware fait). Le dossier est retourné à l'inventaire pour un spécialiste Linux.")
-                    redirect_to_inventory = True # Retour liste
+                instance.statut = 'CONFIGURATION'
+                instance.benevole_en_charge = None
+                commentaire_intervention = f"Réactivation Hardware par {benevole.get_full_name()}. Pièces installées. Dossier relâché pour configuration Linux."
+                messages.success(request, "🔧 Matériel réactivé (hardware fait). Le dossier est retourné à l'inventaire pour un spécialiste Linux.")
+                redirect_to_inventory = True
 
-            elif action == 'reactivate_repa':
-                # Transition : ATTENTE_PIECES -> REPARATION
-                if materiel.statut == 'ATTENTE_PIECES':
-                    instance.statut = 'REPARATION'
-                    
-                    # On attribue le dossier au bénévole actuel s'il n'y en a pas, 
-                    # ou on le laisse tel quel si c'est le même qui reprend son travail.
-                    if not instance.benevole_en_charge:
-                        instance.benevole_en_charge = benevole
-                        instance.date_prise_en_charge = timezone.now()
-                    
-                    Intervention.objects.create(
-                        materiel=materiel,
-                        benevole=benevole,
-                        type_action='TRANSFERT', # ou 'REPA'
-                        commentaire="Réactivation du dossier : pièces manquantes installées. Passage en réparation."
-                    )
-                    messages.success(request, "✅ Matériel réactivé. Vous pouvez maintenant procéder à la configuration.")
-                    # redirect_to_inventory = False (On reste sur la page pour travailler)
-                else:
-                    messages.warning(request, "Ce statut ne permet pas la réactivation.")
-
+            # 9. Validation de la configuration, passage en prêt à donner
             elif action == 'validate_repa':
-                # Fin de réparation : REPARATION -> PRET_A_DON
                 instance.statut = 'PRET_A_DON'
                 type_action = 'REPA'
                 commentaire_intervention = "Réparation et configuration validées. Prêt à donner."
                 messages.success(request, "🎉 Matériel prêt à être donné !")
                 redirect_to_inventory = True
 
-            # 3. Sauvegarde Finale
-            if instance.cout_reparation is None or instance.cout_reparation == '':
-                instance.cout_reparation = Decimal('0.00')
-            
+            # Sauvegarde Finale
             instance.save()
 
-            # 4. Création de l'historique (Intervention)
+            # Création de l'intervention
             if commentaire_intervention:
                 Intervention.objects.create(
                     materiel=materiel,
@@ -205,7 +167,7 @@ def modifier_materiel(request, pk):
                     commentaire=commentaire_intervention
                 )
 
-            # 5. Redirection
+            # Redirection
             if redirect_to_inventory:
                 return redirect('inventaire')
             else:
@@ -216,6 +178,7 @@ def modifier_materiel(request, pk):
             if not form.is_valid():
                 print(f"Erreurs Form : {form.errors}")
             messages.error(request, "Une erreur est survenue dans le formulaire. Vérifiez les champs.")
+
 
     # === Traitement du GET ==========
     # Affichage du formulaire vide
@@ -232,24 +195,16 @@ def modifier_materiel(request, pk):
         'show_start_button': statut == 'ENTREE',
         'show_diag_actions': statut == 'DIAGNOSTIC',
         'show_wait_actions': statut == 'ATTENTE_PIECES',
-        'show_repair_section': statut in ['REPARATION', 'PRET_A_DON'],
+        'show_repair_section': statut in ['CONFIGURATION', 'PRET_A_DON'],
+        'show_validate_final_button': statut == 'CONFIGURATION',
         'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PERDU'],
-        'show_recycle_button': statut in ['DIAGNOSTIC', 'REPARATION'], 
-    }
-    display_flags = {
-        'show_start_button': statut == 'ENTREE',
-        'show_diag_actions': statut == 'DIAGNOSTIC',
-        'show_wait_actions': statut == 'ATTENTE_PIECES',
-        'show_repair_section': statut in ['REPARATION', 'PRET_A_DON'],
-        'show_validate_final_button': statut == 'REPARATION',
-        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PERDU'],
-        'show_recycle_button': statut in ['DIAGNOSTIC', 'REPARATION'],
+        'show_recycle_button': statut in ['DIAGNOSTIC', 'CONFIGURATION'], # boutons recycler et pour pièces
         
         # La section Hardware est toujours visible (sauf si verrouillé), mais repliée en mode Réparation
-        'hardware_collapsed': statut in ['REPARATION', 'PRET_A_DON'], 
+        'hardware_collapsed': statut in ['CONFIGURATION', 'PRET_A_DON'], 
         
         # La section Software est invisible en mode Diagnostic/Entrée/Attente, visible sinon
-        'software_visible': statut in ['REPARATION', 'PRET_A_DON'],
+        'software_visible': statut in ['CONFIGURATION', 'PRET_A_DON'],
     }
 
 
@@ -258,7 +213,11 @@ def modifier_materiel(request, pk):
     if statut == 'ENTREE':
         status_message = "En attente de prise en charge."
     elif statut == 'DIAGNOSTIC':
-        status_message = f"En cours de diagnostic par {materiel.benevole_en_charge}." if materiel.benevole_en_charge else "En cours de diagnostic."
+        status_message = "En cours de diagnostic."
+    elif statut == 'ATTENTE_PIECES':
+        status_message = "En attente de pièces."
+    elif statut == 'CONFIGURATION':
+        status_message == "En cours d'installation OS et logiciels."
 
     
     # --- Passage du contexte et affichage de la view

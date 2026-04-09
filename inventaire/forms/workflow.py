@@ -73,17 +73,26 @@ class DiagnosticRepaForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_method = 'post'
         self.helper.form_tag = False # IMPORTANT : On dit à Crispy de NE PAS générer la balise <form> ni les boutons
+        # Contrôle de l'affichage des "*" indiquant un champ obligatoire, on rend optionnel tous les champs qui
+        # ont une valeur par défaut qui peut être validée telle quelle
+        self.fields['categorie'].required = False
+        self.fields['cpu'].required = False
+        self.fields['statut_wifi'].required = False
         
         # Layout simplifié : juste l'ordre d'affichage des champs
         # Plus de Row/Column, on fait ça dans le HTML
         self.helper.layout = Layout(
-            # Hardware
-            'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 
-            'statut_wifi', 'disque_principal_type','disque_principal_go','disque_secondaire_type','disque_secondaire_go','a_carte_graphique_dediee', 'modele_gpu',
-            'rapport_diagnostic', 'a_alimentation', 'etat_batterie',
-            # Software
-            'linux_installe', 'linux_distro', 'date_maj_os',
-            'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
+            Fieldset( "Hardware - Diagnostic",
+                # On force l'étoile indiquant un champ obligatoire 
+                Field('cpu', required=True), 
+                # Hardware
+                'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 
+                'statut_wifi', 'disque_principal_type','disque_principal_go','disque_secondaire_type','disque_secondaire_go','a_carte_graphique_dediee', 'modele_gpu',
+                'rapport_diagnostic', 'a_alimentation', 'etat_batterie',
+                # Software
+                'linux_installe', 'linux_distro', 'date_maj_os',
+                'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
+            )
         )
 
 
@@ -106,6 +115,10 @@ class DiagnosticRepaForm(forms.ModelForm):
                 errors.append("L'indice Passmak est obligatoire pour valider le diagnostic. Allez sur https://www.cpubenchmark.net/cpu-list pour le trouver.")
             if not cleaned_data.get('ram_go'):
                 errors.append("La quantité de RAM est obligatoire pour valider le diagnostic.")
+            if not cleaned_data.get('disque_principal_type'):
+                errors.append("Le type du disque principal est obligatoire pour valider le diagnostic.")
+            if not cleaned_data.get('disque_principal_go'):
+                errors.append("La taille du disque principal est obligatoire pour valider le diagnostic.")
             if not cleaned_data.get('rapport_diagnostic'):
                 errors.append("Un rapport de diagnostic est obligatoire.")
             
@@ -144,13 +157,9 @@ class DiagnosticEcranForm(forms.ModelForm):
         self.helper.form_method = 'post'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Fieldset("Caractéristiques de l'écran",
-                Row(
-                    Column('diagonale_pouces', css_class='col-md-4'),
-                    Column('resolution', css_class='col-md-4'),
-                    Column('connectique', css_class='col-md-4'),
-                ),
-            ),
+            'diagonale_pouces',
+            'resolution',
+            'connectique', 
             'rapport_diagnostic',
         )
 
@@ -200,13 +209,9 @@ class DiagnosticPeripheriqueForm(forms.ModelForm):
         self.helper.form_method = 'post'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Fieldset("Caractéristiques du périphérique",
-                Row(
-                    Column('type_periph', css_class='col-md-6'),
-                    Column('avec_cable', css_class='col-md-6'),
-                ),
-                Row(Column('connectique', css_class='col-md-12')),
-            ),
+            'type_periph',
+            'avec_cable',
+            'connectique',
             'rapport_diagnostic',
         )
 

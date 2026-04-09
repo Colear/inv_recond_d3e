@@ -37,6 +37,7 @@
         {% if not display.is_locked %}
 
             {% if materiel.statut == 'ENTREE' %}
+
                 <!-- CAS 1 : Démarrage -->
                 <div class="alert alert-info text-center py-5 shadow-sm">
                     <h3>📋 Diagnostic en attente</h3>
@@ -54,9 +55,26 @@
                         🔍 Diagnostic & Caractéristiques
                     </div>
                     <div class="card-body">
-                        <!-- Le formulaire sera différent selon que c'est un Écran ou un Périphérique -->
-                        <!-- Crispy s'occupe de l'affichage des champs spécifiques -->
-                        {{ form|crispy }}
+
+                        <!-- Grille Bootstrap -->
+                        <div class="row g-3">
+
+                            <!-- cas d'un écran -->
+                            {% if type_appareil == 'Écran' %}
+                                <div class="col-md-6">{{ form.diagonale_pouces|as_crispy_field }}</div>
+                                <div class="col-md-6">{{ form.resolution|as_crispy_field }}</div>
+                                <div class="col-12">{{ form.connectique|as_crispy_field }}</div>
+
+                            <!-- cas d'un périphérique -->
+                            {% else %}
+                                <div class="col-md-6">{{ form.type_periph|as_crispy_field }}</div>
+                                <div class="w-100 d-none d-md-block"></div>
+                                <div class="col-md-5 d-flex align-items-center">{{ form.avec_cable|as_crispy_field }}</div>
+                                <div class="col-md-7">{{ form.connectique|as_crispy_field }}</div>
+ 
+                            {% endif %}
+                            <div class="col-12 mt-3">{{ form.rapport_diagnostic|as_crispy_field }}</div>
+                        </div>
                     </div>
                 </div>
 

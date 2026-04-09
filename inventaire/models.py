@@ -131,16 +131,16 @@ class Materiel(models.Model):
 
     # Les étapes du worklow
     STATUT_CHOICES = [
-        ('ENTREE', 'En attente de diagnostic'),
-        ('DIAGNOSTIC', 'En cours de diagnostic'),
-        ('ATTENTE_PIECES', 'En attente de pièces / Cannibalisation'),
-        ('ATTENTE_DEMONTAGE', 'En attente de démontage (Stock pièces)'),
-        ('EN_COURS_DEMONTAGE', 'En cours de démontage'),
-        ('REPARATION', 'En cours de réparation / Configuration'),
-        ('PRET_A_DON', 'Réparé - Prêt à donner'),
+        ('ENTREE', 'Attente de diagnostic'),
+        ('DIAGNOSTIC', 'Diagnostic en cours'),
+        ('ATTENTE_PIECES', 'En attente de pièces'),
+        ('POUR_PIECES', 'Pour pièces'),
+        ('EN_COURS_DEMONTAGE', 'Démontage en cours'),
+        ('CONFIGURATION', 'Installation' ),
+        ('PRET_A_DON', 'Prêt à donner'),
         ('DONNE', 'Donné'),
-        ('RECYCLAGE', 'Envoyé au recyclage'),
-        ('PERDU', 'Perdu / Volé'),
+        ('RECYCLAGE', 'Recyclé'),
+        ('PERDU', 'Perdu / volé'),
     ]
 
     # Les différents types de matériel possibles
@@ -373,16 +373,16 @@ class Ordinateur(Materiel):
     categorie = models.CharField(max_length=20, choices=CATEGORIE_CHOICES, default='FIXE')
     
     # ----- CPU & RAM Détaillée
-    cpu = models.CharField(max_length=100)
+    cpu = models.CharField(max_length=100, blank=True)
     cpu_score = models.PositiveIntegerField(default=0)
     ram_go = models.PositiveIntegerField(default=0)
-    ram_nb_barrettes = models.PositiveIntegerField(default=1)
+    ram_nb_barrettes = models.PositiveIntegerField(default=0)
     ram_type = models.CharField(max_length=20, choices=RAM_CHOICES, default='INCONNUE')
 
     # ----- Disques 
-    disque_principal_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, default='')    
+    disque_principal_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, blank=True)    
     disque_principal_go = models.PositiveIntegerField(default=0)
-    disque_secondaire_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, blank=True, default='')    
+    disque_secondaire_type = models.CharField(max_length=10, choices=DISQUE_CHOICES, blank=True)    
     disque_secondaire_go = models.PositiveIntegerField(default=0, blank=True)
     
     
