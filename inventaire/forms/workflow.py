@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Row, Column, Fieldset, Submit, HTML, Div, Field
+from crispy_forms.layout import Layout, Fieldset
 from ..models import Ordinateur, Ecran, Peripherique
 
 
@@ -34,25 +34,6 @@ class DiagnosticRepaForm(forms.ModelForm):
             'linux_installe', 'linux_distro', 'date_maj_os',
             'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
         ]
-        labels = {
-            'categorie': "Catégorie ",
-            'cpu': "CPU ",
-            'cpu_score': "Score CPU ",
-            'ram_go': "RAM installée (en Go) ",
-            'ram_nb_barrettes': "Nb de barrettes ",
-            'ram_type': "Type de RAM ",
-            'statut_wifi': "WiFi ? ",
-            'a_carte_graphique_dediee': "Carte graphique ?  ",
-            'modele_gpu': "... modèle",
-            'disque_principal_type': "Disque 1: type ",
-            'disque_principal_go': "... taille (Go) ",
-            'disque_secondaire_type': "Disque 2: type",
-            'disque_secondaire_go': "... taille (Go)",
-            'a_alimentation': "Alimentation ?",
-            'etat_batterie': "Etat de la batterie ",
-            'ecran_diagonale_pouces': "Diagonale d'écran",
-            'rapport_diagnostic': "Rapport de diagnostic "
-        }
         widgets = {
             'cpu': forms.TextInput(attrs={'placeholder': 'Ex: Intel i5-8500'}),
             'rapport_diagnostic': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Problèmes constatés, tests...'}),
@@ -72,21 +53,30 @@ class DiagnosticRepaForm(forms.ModelForm):
 
         self.helper = FormHelper()
         self.helper.form_method = 'post'
-        self.helper.form_tag = False # IMPORTANT : On dit à Crispy de NE PAS générer la balise <form> ni les boutons
-        # Contrôle de l'affichage des "*" indiquant un champ obligatoire, on rend optionnel tous les champs qui
-        # ont une valeur par défaut qui peut être validée telle quelle
-        self.fields['categorie'].required = False
+
+        # Utilisation custom de crispy :
+        #  - crispy ne doit pas afficher les tags <form> pour nous permettre de gérer les
+        #    champs un par un avec |as_crispy_field
+        #  - crispy ne doit pas afficher les labels, on les gère dans le template (permet
+        #    de crontrôler les * des champs obligatoires)
+        self.helper.form_tag = False
+        self.helper.form_show_labels = False
+
+        # Pour que ce soit le clean qui gère les champs obligatoire plutôt que Django, on
+        # met tous les champs traités par le clean comme facultatif
         self.fields['cpu'].required = False
-        self.fields['statut_wifi'].required = False
-        
-        # Layout simplifié : juste l'ordre d'affichage des champs
-        # Plus de Row/Column, on fait ça dans le HTML
+        self.fields['cpu_score'].required = False
+        self.fields['ram_go'].required = False
+        self.fields['disque_principal_type'].required = False        
+        self.fields['disque_principal_go'].required = False
+        self.fields['rapport_diagnostic'].required = False
+
+        # Layout simplifié : juste les champs, la mise
+        # en page est faite dans le template
         self.helper.layout = Layout(
-            Fieldset( "Hardware - Diagnostic",
-                # On force l'étoile indiquant un champ obligatoire 
-                Field('cpu', required=True), 
+            Fieldset( "Diagnostic & configuration logicielle",
                 # Hardware
-                'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 
+                'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 
                 'statut_wifi', 'disque_principal_type','disque_principal_go','disque_secondaire_type','disque_secondaire_go','a_carte_graphique_dediee', 'modele_gpu',
                 'rapport_diagnostic', 'a_alimentation', 'etat_batterie',
                 # Software
