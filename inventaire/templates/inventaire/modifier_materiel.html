@@ -9,7 +9,7 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2>🔧 {{ materiel.marque }} {{ materiel.modele }} <small class="text-muted">({{ materiel.numero_inventaire }})</small></h2>
+            <h2>🔧 {{ materiel.marque|default:"Sans marque" }} {{ materiel.modele|default:"sans référence" }}</h2>
             <p class="text-muted">{{ status_message }}</p>
         </div>
         <div class="col-md-4 text-end">
@@ -74,12 +74,17 @@
 
                                 <!-- Grille Bootstrap -->
                                 <div class="row g-3 mt-3">
-                                    <!-- general -->
+                                    <!-- général -->
                                     <div class="form-group row">
-                                        <label for="{{ form.categorie.id_for_label }}" class="col-md-4 form-label">
+                                        <label for="{{ form.categorie.id_for_label }}" class="col-md-2 form-label d-flex justify-content-end mt-2">
                                             Catégorie
                                         </label>
-                                        <div class="col-md-8">{{ form.categorie|as_crispy_field }}</div>
+                                        <div class="col-md-4">{{ form.categorie|as_crispy_field }}</div>
+                                        <label for="{{ form.modele.id_for_label }}" class="col-md-2 form-label d-flex justify-content-end mt-2">
+                                            Modèle
+                                        </label>
+                                        <div class="col-md-4">{{ form.modele|as_crispy_field }}</div>
+                                    </div>
                                     <div class="w-100 d-none d-md-block"></div>
 
                                     <!-- hardware -->
@@ -107,7 +112,7 @@
                                         {{ form.ram_go|as_crispy_field }}
                                     </div>
                                     <div class="col-md-4">
-                                        <label for="{{ form.nb_barrettes.id_for_label }}" class="form-label">
+                                        <label for="{{ form.ram_nb_barrettes.id_for_label }}" class="form-label">
                                             Nombre de barrettes <span class="text-danger">*</span>
                                         </label>
                                         {{ form.ram_nb_barrettes|as_crispy_field }}
@@ -149,7 +154,7 @@
                                     </div> 
                                     <div class="col-md-2">
                                         <label for="{{ form.disque_principal_go.id_for_label }}" class="form-label">
-                                            ... taille <span class="text-danger">*</span>
+                                            ... taille (Go) <span class="text-danger">*</span>
                                         </label>
                                         {{ form.disque_principal_go|as_crispy_field }}
                                     </div> 
@@ -161,7 +166,7 @@
                                     </div>
                                     <div class="col-md-2">
                                         <label for="{{ form.disque_secondaire_go.id_for_label }}" class="form-label">
-                                            ... taille
+                                            ... taille (Go)
                                         </label>
                                         {{ form.disque_secondaire_go|as_crispy_field }}
                                     </div>

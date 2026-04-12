@@ -1,5 +1,4 @@
 from django import forms
-from django.forms import inlineformset_factory
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Fieldset
 from ..models import Ordinateur, Ecran, Peripherique
@@ -20,7 +19,7 @@ class DiagnosticRepaForm(forms.ModelForm):
         # On inclut TOUS les champs nécessaires (Hardware + Software)
         fields = [
             # Type d'ordi
-            'categorie', 'marque', 'modele',
+            'categorie', 'modele',
             # Hardware - Diagnostic
             'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type',
             'statut_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
@@ -76,6 +75,7 @@ class DiagnosticRepaForm(forms.ModelForm):
         # en page est faite dans le template
         self.helper.layout = Layout(
             Fieldset( "Diagnostic & configuration logicielle",
+                'categorie', 'modele',
                 # Hardware
                 'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type', 
                 'statut_wifi', 'disque_principal_type','disque_principal_go','disque_secondaire_type','disque_secondaire_go','a_carte_graphique_dediee', 'modele_gpu',

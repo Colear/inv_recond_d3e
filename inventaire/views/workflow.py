@@ -80,7 +80,7 @@ def modifier_materiel(request, pk):
                 redirect_to_inventory = True 
 
             # 2. Validation du diagnostic et libération du dossier
-            elif action == 'validate_diag_release':
+            elif action == 'validate_diag_and_release':
                 instance.statut = 'CONFIGURATION'
                 instance.benevole_en_charge = None
                 type_action = 'TRANSFERT'
@@ -89,7 +89,7 @@ def modifier_materiel(request, pk):
                 redirect_to_inventory = True 
 
             # 3. Validation du diagnostic et passage en configuration 
-            elif action == 'validate_diag_repa':
+            elif action == 'validate_diag_and_config':
                 if not instance.benevole_en_charge:
                     instance.benevole_en_charge = benevole
                     instance.date_prise_en_charge = timezone.now()
@@ -208,7 +208,7 @@ def modifier_materiel(request, pk):
     }
 
 
-    # On peut aussi préparer les textes dynamiques si besoin
+    # --- Messages de statut 
     status_message = ""
     if statut == 'ENTREE':
         status_message = "En attente de prise en charge."
@@ -217,9 +217,8 @@ def modifier_materiel(request, pk):
     elif statut == 'ATTENTE_PIECES':
         status_message = "En attente de pièces."
     elif statut == 'CONFIGURATION':
-        status_message == "En cours d'installation OS et logiciels."
+        status_message = "En cours d'installation OS et logiciels."
 
-    
     # --- Passage du contexte et affichage de la view
     context = {
         'materiel': materiel,
