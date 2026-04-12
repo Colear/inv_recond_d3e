@@ -148,7 +148,7 @@ def modifier_materiel(request, pk):
                 redirect_to_inventory = True
 
             # 9. Validation de la configuration, passage en prêt à donner
-            elif action == 'validate_repa':
+            elif action == 'validate_config':
                 instance.statut = 'PRET_A_DON'
                 type_action = 'REPA'
                 commentaire_intervention = "Réparation et configuration validées. Prêt à donner."

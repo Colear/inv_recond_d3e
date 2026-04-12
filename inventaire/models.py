@@ -359,14 +359,15 @@ class Ordinateur(Materiel):
         ('INTEGRE', '✅ Intégré (Carte mère)'),
         ('CARTE', '✅ Intégré (Carte fille)'),
         ('CLEF_ORIGINE', '🔑 Clef WiFi d\'origine fournie'),
-        ('CLEF_ACHAT', '💰 Clef WiFi achetée (à facturer)'),
+        ('CLEF_ACHAT', '💰 Clef WiFi achetée (à facturer)')
     ]
     DISTRIB_CHOICES = [
-        ('ANDUIN', 'AnduinOS'), ('ZORIN', 'Zorin OS'), ('UBUNTU', 'Ubuntu'),
-        ('LINUX_MINT', 'Linux Mint'), ('AUTRE', 'Autre'),
+        ('ANDUIN_LTS_1_1', 'AnduinOS LTS 1.1'), ('ANDUIN_1_4', 'AnduinOS 1.4'), ('ZORIN_18', 'Zorin OS 18 Core'), ('POPOS_LTS_24', 'Pop!_OS 24.04 LTS'), 
+        ('POPOS_LTS_24_NVIDIA', 'Pop!_OS 24.04 LTS with NVIDIA'), ('UBUNTU_LTS_24', 'Ubuntu LTS 24'), ('UBUNTU_25', 'Ubuntu 25'),
+        ('UBUNTU_SERVER_LTS_24', 'Ubuntu Server LTS 24'), ('AUTRE', 'Autre (préciser dans le rapport)')
     ]
-    PHOTO_CHOICES = [('AUCUN', 'Aucun'), ('GIMP', 'GIMP'), ('PHOTOFLARE', 'Photoflare'), ('DARKTABLE', 'Darktable')]
-    MEDIA_CHOICES = [('VLC', 'VLC'), ('DEFAULT', 'Défaut OS'), ('MPV', 'MPV')]
+    PHOTO_CHOICES = [('AUCUN', 'Aucun'), ('GIMP', 'GIMP'), ('DARKTABLE', 'Darktable'), ('PHOTOFLARE', 'Photoflare'), ('PINTA', 'Pinta')]
+    MEDIA_CHOICES = [('DEFAULT', 'Défaut OS'), ('CELLULOID', 'Celluloid'), ('HARUNA', 'Haruna'), ('MPV', 'MPV'), ('VLC', 'VLC')]
 
 
     # ----- Type d'ordinateur
@@ -400,10 +401,18 @@ class Ordinateur(Materiel):
     linux_installe = models.BooleanField(default=False)
     linux_distro = models.CharField(max_length=50, blank=True, choices=DISTRIB_CHOICES)
     date_maj_os = models.DateField(null=True, blank=True)
+    dns_configures = models.BooleanField(default=False)
+    langue_configuree = models.BooleanField(default=False)
     onlyoffice_installe = models.BooleanField(default=False)
+    firefox_configure = models.BooleanField(default=False)
+    firefox_extensions = models.BooleanField(default=False)
     logiciel_photo = models.CharField(max_length=50, blank=True, choices=PHOTO_CHOICES)
     media_player = models.CharField(max_length=50, blank=True, choices=MEDIA_CHOICES)
-    firefox_configure = models.BooleanField(default=False)    
+    rapport_configuration = models.TextField(
+        blank=True, 
+        help_text="Merci d'indiquer les spécificités de configuration logicielle : distribution et version si non standard, autres logiciels installés, " \
+            "autres comptes créés, problèmes rencontrés, etc."
+    ) 
 
     # On force le type pour éviter les problèmes d'héritage (valeur par défaut dans la classe parente)
     def save(self, *args, **kwargs):

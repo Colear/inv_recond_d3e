@@ -20,7 +20,7 @@ class DiagnosticRepaForm(forms.ModelForm):
         # On inclut TOUS les champs nécessaires (Hardware + Software)
         fields = [
             # Type d'ordi
-            'categorie',
+            'categorie', 'marque', 'modele',
             # Hardware - Diagnostic
             'cpu', 'cpu_score', 'ram_go', 'ram_nb_barrettes', 'ram_type',
             'statut_wifi', 'a_carte_graphique_dediee', 'modele_gpu',
@@ -31,20 +31,16 @@ class DiagnosticRepaForm(forms.ModelForm):
             # Hardware - Portables
             'a_alimentation', 'etat_batterie', 'ecran_diagonale_pouces',
             # Software - Configuration
-            'linux_installe', 'linux_distro', 'date_maj_os',
-            'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
+            'linux_installe', 'linux_distro', 'date_maj_os', 'dns_configures', 'langue_configuree',
+            'onlyoffice_installe', 'firefox_configure', 'firefox_extensions', 'logiciel_photo', 'media_player',
+            'rapport_configuration'
         ]
         widgets = {
+            # les widgets qui ne font que passer des class sont inutiles !
             'cpu': forms.TextInput(attrs={'placeholder': 'Ex: Intel i5-8500'}),
             'rapport_diagnostic': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Problèmes constatés, tests...'}),
-            'pieces_changees': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Liste des pièces remplacées'}),
-            'etat_batterie': forms.Select(attrs={'class': 'form-select'}),
-            'linux_distro': forms.Select(attrs={'class': 'form-select'}),
-            'date_maj_os': forms.DateInput(attrs={'type': 'date'}),
-            'disque_principal_type': forms.Select(attrs={'class': 'form-select'}),
-            'disque_secondaire_type': forms.Select(attrs={'class': 'form-select'}),
-            'disque_principal_go': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 500'}),
-            'disque_secondaire_go': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 500'}),
+            'date_maj_os': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+            'rapport_configuration': forms.Textarea(attrs={'rows': 3}),            
         }
 
     def __init__(self, *args, **kwargs):
@@ -70,6 +66,11 @@ class DiagnosticRepaForm(forms.ModelForm):
         self.fields['disque_principal_type'].required = False        
         self.fields['disque_principal_go'].required = False
         self.fields['rapport_diagnostic'].required = False
+        self.fields['linux_distro'].required = False
+        self.fields['date_maj_os'].required = False
+        self.fields['logiciel_photo'].required = False
+        self.fields['media_player'].required = False
+        self.fields['rapport_configuration'].required = False
 
         # Layout simplifié : juste les champs, la mise
         # en page est faite dans le template
@@ -80,8 +81,9 @@ class DiagnosticRepaForm(forms.ModelForm):
                 'statut_wifi', 'disque_principal_type','disque_principal_go','disque_secondaire_type','disque_secondaire_go','a_carte_graphique_dediee', 'modele_gpu',
                 'rapport_diagnostic', 'a_alimentation', 'etat_batterie',
                 # Software
-                'linux_installe', 'linux_distro', 'date_maj_os',
-                'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure',
+                'linux_installe', 'linux_distro', 'date_maj_os', 'dns_configures', 'langue_configuree', 
+                'onlyoffice_installe', 'logiciel_photo', 'media_player', 'firefox_configure', 'firefox_extensions',
+                'rapport_configuration',
             )
         )
 
@@ -93,16 +95,19 @@ class DiagnosticRepaForm(forms.ModelForm):
         # Astuce: On peut regarder dans self.data directement
         action = self.data.get('action')
         
-        # Définition des actions qui nécessitent un diagnostic COMPLET
-        actions_completes = ['validate_diag_release', 'validate_diag_repa', 'validate_repa'] 
+        # Initialisation du tableau des erreurs
+        errors = []
+
+        # Définition des actions qui nécessitent un diagnostic complet avant la bascule de statut
+        actions_diag_complete = ['validate_diag_and_release', 'validate_diag_and_config', 'validate_config'] 
         
-        if action in actions_completes:
-            # Si on veut passer en Réparation/Config, les champs Hardware sont OBLIGATOIRES
-            errors = []
+        # Pour ces actions on vérifie que les champs du diagnostic hardware soient bien remplis
+        if action in actions_diag_complete:
+            
             if not cleaned_data.get('cpu'):
                 errors.append("Le processeur (CPU) est obligatoire pour valider le diagnostic.")
             if not cleaned_data.get('cpu_score'):
-                errors.append("L'indice Passmak est obligatoire pour valider le diagnostic. Allez sur https://www.cpubenchmark.net/cpu-list pour le trouver.")
+                errors.append("L'indice de performance CPU est obligatoire pour valider le diagnostic.")
             if not cleaned_data.get('ram_go'):
                 errors.append("La quantité de RAM est obligatoire pour valider le diagnostic.")
             if not cleaned_data.get('disque_principal_type'):
@@ -111,12 +116,38 @@ class DiagnosticRepaForm(forms.ModelForm):
                 errors.append("La taille du disque principal est obligatoire pour valider le diagnostic.")
             if not cleaned_data.get('rapport_diagnostic'):
                 errors.append("Un rapport de diagnostic est obligatoire.")
-            
-            if errors:
-                raise forms.ValidationError(errors)
-        
-        # Si l'action est 'wait_parts' ou 'save_exit', on ne bloque pas (champs optionnels)
-        
+
+        # Pour validate_config il faut également que les champs logiciels soient valides
+        if action == 'validate_config':
+            linux_installe = cleaned_data.get('linux_installe')
+
+            if not linux_installe:
+                errors.append("Linux doit être installé pour valider la configuration logicielle.")
+            else:
+                if not cleaned_data.get('linux_distro'):
+                    errors.append("La distribution Linux est obligatoire pour valider la configuration logicielle.")
+                if not cleaned_data.get('date_maj_os'):
+                    errors.append("La date de mise à jour de la distribution Linux est obligatoire pour valider la configuration logicielle.")
+                if not cleaned_data.get('dns_configures'):
+                    errors.append("Les DNS doivent être configurés pour valider la configuration logicielle.")
+                if not cleaned_data.get('langue_configuree'):
+                    errors.append("La langue anglaise doit être retirée des paramètres pour valider la configuration logicielle.")
+                if not cleaned_data.get('onlyoffice_installe'):
+                    errors.append("Only Office doit être installé pour valider la configuration logicielle.")
+                if not cleaned_data.get('firefox_configure'):
+                    errors.append("Firefox doit être configuré pour valider la configuration logicielle.")
+                if not cleaned_data.get('firefox_extensions'):
+                    errors.append("Les extensions de Firefox doit être installées pour valider la configuration logicielle.")
+                if not cleaned_data.get('logiciel_photo'):
+                    errors.append("Préciser l'option retenue pour le logiciel de dessin afin de valider la configuration logicielle.")
+                if not cleaned_data.get('media_player'):
+                    errors.append("Préciser l'option retenue pour le media player afin de valider la configuration logicielle.")
+                if not cleaned_data.get('rapport_configuration'):
+                    errors.append("Le rapport d'installation OS et de configuration est obligatoire pour valider la configuration logicielle.")            
+
+        if errors:
+            raise forms.ValidationError(errors)
+               
         return cleaned_data
 
 

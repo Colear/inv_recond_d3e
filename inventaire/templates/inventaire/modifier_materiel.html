@@ -124,7 +124,6 @@
                                         </label>
                                         {{ form.statut_wifi|as_crispy_field }}
                                     </div>
-                                    <!-- <div class="col-md-4 d-flex align-items-end justify-content-end"> -->
                                     <div class="col-md-4 d-flex align-items-center justify-content-end">
                                         <div class="form-check">
                                             {{ form.a_carte_graphique_dediee|as_crispy_field }}
@@ -171,9 +170,26 @@
                                     <div class="col-12 mt-4 portable-section-wrapper fade-section">
                                         <h6 class="text-primary border-bottom pb-2">💻 Spécifique PC Portable</h6>
                                         <div class="row g-3">
-                                            <div class="col-md-4 d-flex align-items-end justify-content-end">{{ form.a_alimentation|as_crispy_field }}</div>
-                                            <div class="col-md-4">{{ form.etat_batterie|as_crispy_field }}</div>
-                                            <div class="col-md-4">{{ form.ecran_diagonale_pouces|as_crispy_field }}</div>
+                                            <div class="col-md-4 d-flex align-items-center justify-content-end">
+                                                <div class="form-check">
+                                                    {{ form.a_alimentation|as_crispy_field }}
+                                                    <label for="{{ form.a_alimentation.id_for_label }}" class="form-check-label">
+                                                        Avec alimentation ? 
+                                                    </label>                                            
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="{{ form.etat_batterie.id_for_label }}" class="form-label">
+                                                    Etat de la batterie
+                                                </label>
+                                                {{ form.etat_batterie|as_crispy_field }}
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="{{ form.ecran_diagonale_pouces.id_for_label }}" class="form-label">
+                                                    Taille de l'écran
+                                                </label>
+                                                {{ form.ecran_diagonale_pouces|as_crispy_field }}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -181,11 +197,13 @@
                                         <label for="{{ form.rapport_diagnostic.id_for_label }}" class="form-label">
                                             Rapport de diagnostic <span class="text-danger">*</span>
                                         </label>
-                                        {{ form.rapport_diagnostic|as_crispy_field }}</div>
+                                        {{ form.rapport_diagnostic|as_crispy_field }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
 
                     <!-- ======================================================================= -->
                     <!-- SECTION 2 : SOFTWARE (Conditionnelle : Invisible si pas en Réparation)   -->
@@ -200,7 +218,7 @@
                                     data-bs-target="#collapseSoftware" 
                                     aria-expanded="true" 
                                     aria-controls="collapseSoftware">
-                                🐧 Étape 2 : Configuration Logicielle (Linux)
+                                🐧 Étape 2 : Installation Linux et configuration logicielle
                             </button>
                         </h2>
                         
@@ -211,20 +229,91 @@
                             data-bs-parent="#accordionWorkflow">
                             <div class="accordion-body">
                                 <div class="row g-3">
-                                    <div class="col-md-12">{{ form.linux_installe|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.linux_distro|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.date_maj_os|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.onlyoffice_installe|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.logiciel_photo|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.media_player|as_crispy_field }}</div>
-                                    <div class="col-md-4">{{ form.firefox_configure|as_crispy_field }}</div>
+                                    <div class="col-md-3 d-flex align-items-center">
+                                        <div class="form-check form-switch">
+                                            {{ form.linux_installe|as_crispy_field }}
+                                            <label for="{{ form.linux_installe.id_for_label }}" class="form-check-label">
+                                                Linux installé ? 
+                                            </label>                                            
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="{{ form.linux_distro.id_for_label }}" class="form-label">
+                                            Distribution
+                                        </label>{{ form.linux_distro|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="{{ form.date_maj_os.id_for_label }}" class="form-label">
+                                            Dernière mise à jour
+                                        </label>
+                                        {{ form.date_maj_os|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4 mt-0 d-flex align-items-center">
+                                        <div class="form-check form-switch">
+                                            {{ form.dns_configures|as_crispy_field }}
+                                            <label for="{{ form.dns_configures.id_for_label }}" class="form-check-label">
+                                                DNS configurés 
+                                            </label>                                            
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8 mt-0 d-flex align-items-center">
+                                        <div class="form-check form-switch">
+                                            {{ form.langue_configuree|as_crispy_field }}
+                                            <label for="{{ form.langue_configuree.id_for_label }}" class="form-check-label">
+                                                Suppression de l'anglais dans les paramètres  
+                                            </label>                                            
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mt-0 d-flex align-items-center">
+                                        <div class="form-check form-switch">
+                                            {{ form.onlyoffice_installe|as_crispy_field }}
+                                            <label for="{{ form.onlyoffice_installe.id_for_label }}" class="form-check-label">
+                                                Only Office installé 
+                                            </label>                                            
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mt-0 d-flex align-items-center">
+                                        <div class="form-check form-switch">
+                                            {{ form.firefox_configure|as_crispy_field }}
+                                            <label for="{{ form.firefox_configure.id_for_label }}" class="form-check-label">
+                                                Firefox configuré 
+                                            </label>                                            
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mt-0 d-flex align-items-center">
+                                        <div class="form-check form-switch">
+                                            {{ form.firefox_extensions|as_crispy_field }}
+                                            <label for="{{ form.firefox_extensions.id_for_label }}" class="form-check-label">
+                                                Extension Firefox installées 
+                                            </label>                                            
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.logiciel_photo.id_for_label }}" class="form-label">
+                                            Logiciel de dessin
+                                        </label>
+                                        {{ form.logiciel_photo|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.media_player.id_for_label }}" class="form-label">
+                                            Media player
+                                        </label>
+                                        {{ form.media_player|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-4"></div>
+                                    <div class="col-12 mt-3">
+                                        <label for="{{ form.rapport_configuration.id_for_label }}" class="form-label">
+                                            Rapport d'installation OS et de configuration logicielle <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.rapport_configuration|as_crispy_field }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     {% endif %}
+                </div> <!-- fin software -->
 
-                </div> <!-- Fin Accordéon -->
 
                 <!-- ======================================================================= -->
                 <!-- ZONE 3 : LES BOUTONS D'ACTION                                           -->
@@ -257,10 +346,10 @@
 
                             <!-- 2. DIAGNOSTIC -->
                             {% if display.show_diag_actions %}
-                                <button type="submit" name="action" value="validate_diag_repa" class="btn btn-success">
+                                <button type="submit" name="action" value="validate_diag_and_config" class="btn btn-success">
                                     ✅ Passer à l'installation Linux
                                 </button>
-                                <button type="submit" name="action" value="validate_diag_release" class="btn btn-info text-white">
+                                <button type="submit" name="action" value="validate_diag_and_release" class="btn btn-info text-white">
                                     👋 Valider le diagnostic
                                 </button>
                                 <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
@@ -295,7 +384,7 @@
 
                             <!-- 4. VALIDATION FINALE -->
                             {% if display.show_validate_final_button %}
-                                <button type="submit" name="action" value="validate_repa" class="btn btn-success btn-lg">
+                                <button type="submit" name="action" value="validate_config" class="btn btn-success btn-lg">
                                     🎉 Valider la Configuration (Prêt à donner)
                                 </button>
                                 <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
