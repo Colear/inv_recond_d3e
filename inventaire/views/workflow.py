@@ -74,8 +74,13 @@ def modifier_materiel(request, pk):
             type_action = "NOTE"
 
             # 1. Sauvegarde du travail sans passer à l'étape suivante
+            #   On ne change pas le statut, on positionne le bénévole qui a fait
+            #   l'enregistrement sur le dossier
             if action == 'save_exit':
                 commentaire_intervention = "Sauvegarde intermédiaire du travail."
+                if not instance.benevole_en_charge:
+                    instance.benevole_en_charge = benevole
+                    instance.date_prise_en_charge = timezone.now()
                 messages.info(request, "💾 Travail enregistré. Vous pouvez revenir plus tard.")
                 redirect_to_inventory = True 
 
@@ -217,7 +222,19 @@ def modifier_materiel(request, pk):
     elif statut == 'ATTENTE_PIECES':
         status_message = "En attente de pièces."
     elif statut == 'CONFIGURATION':
-        status_message = "En cours d'installation OS et logiciels."
+        status_message = "En cours d'installation OS et logiciels"
+
+
+    # --- Déterminer si le bénévole peut éditer le formulaire 
+    # Ce n'est le cas que si il est propriétaire du dossier, ou que
+    # personne n'y travaille
+    can_edit = False
+    if not materiel.benevole_en_charge:
+        can_edit = True
+    elif materiel.benevole_en_charge == request.user:
+        can_edit = True
+    elif request.user.is_superuser:
+        can_edit = True
 
     # --- Passage du contexte et affichage de la view
     context = {
@@ -226,10 +243,17 @@ def modifier_materiel(request, pk):
         'form': form,
         'display': display_flags,
         'status_message': status_message,
+        'can_edit': can_edit,
     }
     return render(request, 'inventaire/modifier_materiel.html', context)
 
 
+
+
+
+"""====== modifier_materiel_simple ============================================
+    Vue simplifiée pour gérer le diagnostic des écrans et périphériques.
+============================================================================"""
 
 @login_required
 @benevole_actif_required

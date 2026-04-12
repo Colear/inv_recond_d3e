@@ -9,7 +9,12 @@
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2>🔧 {{ materiel.marque|default:"Sans marque" }} {{ materiel.modele|default:"sans référence" }}</h2>
+            <h2>
+                🔧 {{ materiel.marque|default:"Sans marque" }} {{ materiel.modele|default:"sans référence" }}
+                {% if materiel.benevole_en_charge.username %}
+                    <span class="text-muted small">(dossier de {{ materiel.benevole_en_charge.get_full_name|default:materiel.benevole_en_charge.username }})</span>
+                {% endif %}
+            </h2>
             <p class="text-muted">{{ status_message }}</p>
         </div>
         <div class="col-md-4 text-end">
@@ -323,88 +328,109 @@
                 <!-- ======================================================================= -->
                 <!-- ZONE 3 : LES BOUTONS D'ACTION                                           -->
                 <!-- ======================================================================= -->
+
                 <div class="card border-warning mb-4">
-                    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3 bg-light">
-                        
-                        <!-- Message contextuel -->
-                        <div class="text-muted small flex-grow-1">
-                            {% if display.show_start_button %}
-                                <i class="bi bi-info-circle"></i> Cliquez sur "Commencer" pour prendre en charge ce dossier.
-                            {% elif display.show_diag_actions %}
-                                <i class="bi bi-person-check"></i> Diagnostic en cours. Validez pour passer à la réparation.
-                            {% elif display.show_wait_actions %}
-                                <i class="bi bi-hourglass-split"></i> En attente de pièces. Réactivez quand les composants sont installés.
-                            {% elif display.show_validate_final_button %}
-                                <i class="bi bi-check-circle"></i> Matériel réparé. Validez la configuration logicielle pour le don.
-                            {% endif %}
+                    {% if not can_edit %}
+                        <div class="alert alert-warning border-warning shadow-sm mb-4" role="alert">
+                            <h4 class="alert-heading"><i class="bi bi-lock-fill"></i> Dossier verrouillé</h4>
+                            <p class="mb-1">
+                                Ce matériel est actuellement pris en charge par 
+                                <strong>{{ materiel.benevole_en_charge.get_full_name|default:materiel.benevole_en_charge.username }}</strong>.
+                            </p>
+                            <p class="mb-0 small">
+                                Pour éviter les conflits de saisie, vous ne pouvez pas modifier ce dossier. 
+                                Veuillez le contacter pour qu'il vous transfère la charge de l'ordinateur.
+                            </p>
                         </div>
-
-                        <!-- Les Boutons -->
-                        <div class="btn-group" role="group">
+                        <!-- Zone des boutons grisée et désactivée -->
+                        <div class="card border-warning mb-4 opacity-50">
+                            <div class="card-body bg-light">
+                                <p class="text-muted mb-0"><em>Les commandes sont désactivées car vous n'êtes pas le référent de ce dossier.</em></p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3 bg-light">
                             
-                            <!-- 1. DÉMARRAGE -->
-                            {% if display.show_start_button %}
-                                <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg">
-                                    🚀 Commencer le diagnostic
-                                </button>
-                            {% endif %}
+                            <!-- Message contextuel -->
+                            <div class="text-muted small flex-grow-1">
+                                {% if display.show_start_button %}
+                                    <i class="bi bi-info-circle"></i> Cliquez sur "Commencer" pour prendre en charge ce dossier.
+                                {% elif display.show_diag_actions %}
+                                    <i class="bi bi-person-check"></i> Diagnostic en cours. Validez pour passer à la réparation.
+                                {% elif display.show_wait_actions %}
+                                    <i class="bi bi-hourglass-split"></i> En attente de pièces. Réactivez quand les composants sont installés.
+                                {% elif display.show_validate_final_button %}
+                                    <i class="bi bi-check-circle"></i> Matériel réparé. Validez la configuration logicielle pour le don.
+                                {% endif %}
+                            </div>
 
-                            <!-- 2. DIAGNOSTIC -->
-                            {% if display.show_diag_actions %}
-                                <button type="submit" name="action" value="validate_diag_and_config" class="btn btn-success">
-                                    ✅ Passer à l'installation Linux
-                                </button>
-                                <button type="submit" name="action" value="validate_diag_and_release" class="btn btn-info text-white">
-                                    👋 Valider le diagnostic
-                                </button>
-                                <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
-                                    💾 Sauvegarder et quitter
-                                </button>
-                                <button type="submit" name="action" value="wait_parts" class="btn btn-outline-warning">
-                                    ⏳ En attente de pièces
-                                </button>
-                                {% if display.show_recycle_button %}
-                                    <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                            onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
-                                        ♻️ Recycler
+                            <!-- Les Boutons -->
+                            <div class="btn-group" role="group">
+                                
+                                <!-- 1. DÉMARRAGE -->
+                                {% if display.show_start_button %}
+                                    <button type="submit" name="action" value="start_diag" class="btn btn-primary btn-lg">
+                                        🚀 Commencer le diagnostic
                                     </button>
                                 {% endif %}
-                            {% endif %}
 
-                            <!-- 3. ATTENTE PIÈCES -->
-                            {% if display.show_wait_actions %}
-                                <button type="submit" name="action" value="reactivate_keep" class="btn btn-success">
-                                    🔧 Réactiver & Configurer
-                                </button>
-                                <button type="submit" name="action" value="reactivate_release" class="btn btn-outline-primary">
-                                    🔩 Réactiver (Hardware seul)
-                                </button>
-                                {% if display.show_recycle_button %}
-                                    <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                            onclick="return confirm('⚠️ Confirmer le recyclage ?');">
-                                        ♻️ Recycler
+                                <!-- 2. DIAGNOSTIC -->
+                                {% if display.show_diag_actions %}
+                                    <button type="submit" name="action" value="validate_diag_and_config" class="btn btn-success">
+                                        ✅ Passer à l'installation Linux
                                     </button>
-                                {% endif %}
-                            {% endif %}
-
-                            <!-- 4. VALIDATION FINALE -->
-                            {% if display.show_validate_final_button %}
-                                <button type="submit" name="action" value="validate_config" class="btn btn-success btn-lg">
-                                    🎉 Valider la Configuration (Prêt à donner)
-                                </button>
-                                <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
-                                    💾 Sauvegarder et quitter
-                                </button>
-                                {% if display.show_recycle_button %}
-                                    <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                            onclick="return confirm('⚠️ Confirmer le recyclage ?');">
-                                        ♻️ Recycler
+                                    <button type="submit" name="action" value="validate_diag_and_release" class="btn btn-info text-white">
+                                        👋 Valider le diagnostic
                                     </button>
+                                    <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
+                                        💾 Sauvegarder et quitter
+                                    </button>
+                                    <button type="submit" name="action" value="wait_parts" class="btn btn-outline-warning">
+                                        ⏳ En attente de pièces
+                                    </button>
+                                    {% if display.show_recycle_button %}
+                                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                                onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
+                                            ♻️ Recycler
+                                        </button>
+                                    {% endif %}
                                 {% endif %}
-                            {% endif %}
 
+                                <!-- 3. ATTENTE PIÈCES -->
+                                {% if display.show_wait_actions %}
+                                    <button type="submit" name="action" value="reactivate_keep" class="btn btn-success">
+                                        🔧 Réactiver & Configurer
+                                    </button>
+                                    <button type="submit" name="action" value="reactivate_release" class="btn btn-outline-primary">
+                                        🔩 Réactiver (Hardware seul)
+                                    </button>
+                                    {% if display.show_recycle_button %}
+                                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                                onclick="return confirm('⚠️ Confirmer le recyclage ?');">
+                                            ♻️ Recycler
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+
+                                <!-- 4. VALIDATION FINALE -->
+                                {% if display.show_validate_final_button %}
+                                    <button type="submit" name="action" value="validate_config" class="btn btn-success btn-lg">
+                                        🎉 Valider la Configuration (Prêt à donner)
+                                    </button>
+                                    <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
+                                        💾 Sauvegarder et quitter
+                                    </button>
+                                    {% if display.show_recycle_button %}
+                                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                                onclick="return confirm('⚠️ Confirmer le recyclage ?');">
+                                            ♻️ Recycler
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+
+                            </div>
                         </div>
-                    </div>
+                    {% endif %}
                 </div>
             {% endif %}
 
