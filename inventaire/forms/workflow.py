@@ -211,11 +211,11 @@ class DiagnosticEcranForm(forms.ModelForm):
 class DiagnosticPeripheriqueForm(forms.ModelForm):
     class Meta:
         model = Peripherique
-        fields = ['type_periph', 'avec_cable', 'connectique', 'rapport_diagnostic']
+        fields = ['type_periph', 'connectique', 'rapport_diagnostic']
         widgets = {
             'rapport_diagnostic': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'type_periph': forms.Select(attrs={'class': 'form-select'}),
-            'avec_cable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            # 'avec_cable': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'connectique': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -231,7 +231,7 @@ class DiagnosticPeripheriqueForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             'type_periph',
-            'avec_cable',
+            # 'avec_cable',
             'connectique',
             'rapport_diagnostic',
         )

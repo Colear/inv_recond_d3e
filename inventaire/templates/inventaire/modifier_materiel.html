@@ -388,17 +388,7 @@
                                     <button type="submit" name="action" value="wait_parts" class="btn btn-outline-warning">
                                         ⏳ En attente de pièces
                                     </button>
-                                    {% if display.show_recycle_button %}
-                                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
-                                            ♻️ Recycler
-                                        </button>
-                                        <button type="submit" name="action" value="wait_dismantling" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ Utilisez cette option si vous souhaitez remettre en zone de stockage un ordinateur KO destiné à servir de réserve de pièces. A utiliser avec parcimonie en isolant ce matériel dans la zone dédié');">
-                                            ♻️ Pour pièces
-                                        </button>
-                                    {% endif %}
-                                {% endif %}
+                                 {% endif %}
 
                                 <!-- 3. ATTENTE PIÈCES -->
                                 {% if display.show_wait_actions %}
@@ -408,16 +398,6 @@
                                     <button type="submit" name="action" value="reactivate_release" class="btn btn-outline-primary">
                                         🔩 Réactiver (Hardware seul)
                                     </button>
-                                    {% if display.show_recycle_button %}
-                                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
-                                            ♻️ Recycler
-                                        </button>
-                                        <button type="submit" name="action" value="wait_dismantling" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ Utilisez cette option si vous souhaitez remettre en zone de stockage un ordinateur KO destiné à servir de réserve de pièces. A utiliser avec parcimonie en isolant ce matériel dans la zone dédié');">
-                                            ♻️ Pour pièces
-                                        </button>
-                                    {% endif %}
                                 {% endif %}
 
                                 <!-- 4. VALIDATION FINALE -->
@@ -428,17 +408,19 @@
                                     <button type="submit" name="action" value="save_exit" class="btn btn-outline-secondary">
                                         💾 Sauvegarder et quitter
                                     </button>
-                                    {% if display.show_recycle_button %}
-                                        <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
-                                            ♻️ Recycler
-                                        </button>
-                                        <button type="submit" name="action" value="wait_dismantling" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ Utilisez cette option si vous souhaitez remettre en zone de stockage un ordinateur KO destiné à servir de réserve de pièces. A utiliser avec parcimonie en isolant ce matériel dans la zone dédié');">
-                                            ♻️ Pour pièces
-                                        </button>
-                                    {% endif %}
                                 {% endif %}
+
+                                <!-- 5. BOUTONS DE RECYCLAGE -->
+                                {% if display.show_recycle_button %}
+                                    <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
+                                            onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
+                                        ♻️ Recycler
+                                    </button>
+                                    <button type="submit" name="action" value="wait_dismantling" class="btn btn-outline-dark" 
+                                            onclick="return confirm('⚠️ Utilisez cette option si vous souhaitez remettre en zone de stockage un ordinateur KO destiné à servir de réserve de pièces. A utiliser avec parcimonie en isolant ce matériel dans la zone dédié');">
+                                        ♻️ Pour pièces
+                                    </button>
+                                {% endif %}                                 
 
                             </div>
                         </div>

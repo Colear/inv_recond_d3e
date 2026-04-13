@@ -276,14 +276,35 @@ class Materiel(models.Model):
 class Ecran(Materiel):
 
     DIAGONALE_CHOICES = [
-        ('13.3', '13.3" (34 cm)'), ('14.0', '14.0" (36 cm)'), ('15.6', '15.6" (40 cm)'),
-        ('21.5', '21.5" (55 cm)'), ('23.8', '23.8" (60 cm)'), ('24.0', '24" (61 cm)'),
-        ('27.0', '27" (69 cm)'), ('32.0', '32" (81 cm)'), ('Autre', 'Autre')
+        ('13', '13.3" (34 cm)'), ('14', '14" (35,6 cm)'), ('15', '15" (38,1 cm)'),
+        ('17', '17" (43,2 cm)'), ('19', '19" (48,3 cm)'), ('22', '22" (55,9 cm)'), 
+        ('24', '24" (61 cm)'), ('26', '26" (66 cm)'), ('28', '28" (71,1 cm)'), 
+        ('30', '30" (76,2 cm)'), ('32', '32" (81,3 cm)'), ('Autre', 'Autre')
     ]
-    
+
+    CONNECTIQUE_CHOICES = [
+        ('VGA', 'VGA'),
+        ('DVI', 'DVI'),
+        ('HDMI', 'HDMI'),
+        ('DISPLAYPORT', 'DisplayPort'),
+        ('USB_C', 'USB-C'),
+        ('MINI_HDMI', 'Mini HDMI'),
+        ('MINI_DP', 'Mini DisplayPort'),
+    ]
+
     diagonale_pouces = models.CharField(max_length=10, choices=DIAGONALE_CHOICES, blank=True)
     resolution = models.CharField(max_length=20, blank=True)
-    connectique = models.CharField(max_length=100, blank=True)
+    alim_externe = models.BooleanField(default=False)
+
+    # Gestion des connectiques sous la forme d'un JSONField : 
+    # nécessite un formulaire custom ou une validation manuelle
+    connectique = models.JSONField(
+        "Connectiques",
+        choices=CONNECTIQUE_CHOICES,
+        default=list,
+        blank=True,
+        help_text="Cochez toutes les connectiques présentes"
+    )
 
     # On force le type pour éviter les problèmes d'héritage (valeur par défaut dans la classe parente)
     def save(self, *args, **kwargs):
@@ -303,13 +324,114 @@ class Ecran(Materiel):
 class Peripherique(Materiel):
 
     TYPE_PERIPH_CHOICES = [
-        ('CLAVIER', 'Clavier'), ('SOURIS', 'Souris'), ('WEBCAM', 'Webcam'),
-        ('CASQUE', 'Casque'), ('ENCEINTES', 'Enceintes'), ('HUB', 'Hub USB'), ('AUTRE', 'Autre')
+        # --- Saisie & Pointage ---
+        ('CLAVIER', 'Clavier'),
+        ('SOURIS', 'Souris'),
+        ('TABLE_GRA', 'Tablette graphique'),
+        
+        # --- Audio & Visio ---
+        ('CASQUE', 'Casque (Audio ou Visio)'),
+        ('ENCEINTES', 'Enceintes / Haut-parleurs'),
+        ('MICRO', 'Microphone'),
+        ('WEBCAM', 'Webcam'),
+        ('PROJECTEUR', 'Vidéoprojecteur'), 
+        
+        # --- Impression & Numérisation ---
+        ('IMPRIMANTE', 'Imprimante'),
+        ('SCANNER', 'Scanner'),
+        ('LECTEUR_CODE', 'Lecteur de codes-barres'),
+        
+        # --- Stockage & Support ---
+        ('EXT_DISQUE', 'Disque dur externe / SSD'),
+        ('DVD_EXT', 'Graveur / Lecteur optique externe'),
+        ('LECTEUR_CARTES', 'Lecteur de cartes mémoire'),
+        ('CLE_USB', 'Clé USB'), 
+        ('BOITIER_DISQUE', 'Boîtier disque externe (vide)'),
+        
+        # --- Réseau & Connectique ---
+        ('HUB', 'Hub USB'),
+        ('DOCK', 'Dock d\'accueil (USB-C / Thunderbolt)'),
+        ('ROUTEUR', 'Routeur / Box Internet'),
+        ('POINT_ACCES', 'Point d\'accès WiFi'),
+        ('SWITCH', 'Switch Ethernet'),
+        ('REPETEUR', 'Répéteur WiFi'),
+        ('MODEM', 'Modem'),
+        
+        # --- Jeux & Loisirs ---
+        ('MANETTE', 'Contrôleur de jeu (Manette, Joystick, Volant)'),
+        
+        # --- Énergie & Divers ---
+        ('STATION', 'Station de charge (Tablettes/Téléphones)'),
+        ('ONDULEUR', 'Onduleur (UPS)'),
+        ('ALIM_UNIV', 'Alimentation / Chargeur seul'),
+        ('LAMPE_BUR', 'Lampe de bureau USB/LED'),
+        
+        # --- Inclassable ---
+        ('AUTRE', 'Autre périphérique'),
     ]
-    
-    type_periph = models.CharField(max_length=20, choices=TYPE_PERIPH_CHOICES, default='AUTRE')
-    connectique = models.CharField(max_length=50, blank=True)
-    avec_cable = models.BooleanField(default=True)
+
+    CONNECTIQUE_CHOICES = [
+        # --- USB ---
+        ('USB_A', 'USB-A (Classique)'),
+        ('USB_C', 'USB-C'),
+        ('USB_MICRO', 'USB Micro-B'),
+        ('USB_MINI', 'USB Mini-B'), 
+        
+        # --- Vidéo & Audio ---
+        ('HDMI', 'HDMI'),
+        ('DISPLAYPORT', 'DisplayPort'),
+        ('DVI', 'DVI'),
+        ('VGA', 'VGA'),
+        ('JACK_35', 'Jack 3.5mm (Audio)'),
+        ('JACK_635', 'Jack 6.35mm (Audio Pro)'),
+        
+        # --- Réseaux & Données Anciens ---
+        ('ETHERNET', 'Ethernet (RJ45)'), 
+        ('SERIAL', 'Série (RS-232 / DB9)'), 
+        ('PARALLEL', 'Parallèle (LPT / DB25)'), 
+        
+        # --- Sans Fil ---
+        ('BLUETOOTH', 'Bluetooth'),
+        ('RADIO_DONGLE', 'Dongle Radio (ex: Logitech Unifying)'),
+        ('WIFI', 'WiFi (Intégré)'),
+        
+        # --- Spécifique Jeux & Autres ---
+        ('PS2', 'PS/2 (Clavier/Souris)'),
+        ('GAMECUBE', 'Connectique GameCube (Manettes)'),
+        ('XBOX', 'Connectique Xbox (Manettes)'),
+        ('LIGHTNING', 'Lightning (Apple)'),
+        ('PROPRIETAIRE', 'Connectique Propriétaire (Câble spécial)'),
+    ]
+
+    TECHNOLOGIE_IMPRIMANTE_CHOICES = [
+        ('LASER', 'Laser (Noir & Blanc)'),
+        ('LASER_COLOR', 'Laser Couleur'),
+        ('JET_ENCRE', 'Jet d\'encre'),
+        ('TANK', 'Jet d\'encre à réservoirs (EcoTank)'),
+        ('THERMIQUE', 'Thermique (Étiquettes)'),
+        ('NON_CONCERNE', 'Non concerné'),
+    ]
+
+    type_periph = models.CharField(max_length=20, choices=TYPE_PERIPH_CHOICES, blank=True)
+    alim_externe = models.BooleanField(default=False)
+
+    # Gestion des connectiques sous la forme d'un JSONField : 
+    # nécessite un formulaire custom ou une validation manuelle
+    connectique = models.JSONField(
+        "Connectiques",
+        choices=CONNECTIQUE_CHOICES,
+        default=list,
+        blank=True,
+        help_text="Cochez toutes les connectiques présentes"
+    )
+
+    # Pour les imprimantes
+    technologie = models.CharField(
+        max_length=20, 
+        choices=TECHNOLOGIE_IMPRIMANTE_CHOICES, 
+        default='NON_CONCERNE',
+        blank=True
+    )
 
     # On force le type pour éviter les problèmes d'héritage (valeur par défaut dans la classe parente)
     def save(self, *args, **kwargs):

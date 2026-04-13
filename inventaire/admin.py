@@ -180,15 +180,15 @@ class EcranAdmin(MaterielParentAdmin):
 
 @admin.register(Peripherique)
 class PeripheriqueAdmin(MaterielParentAdmin):
-    list_display = ('numero_inventaire', 'type_periph', 'marque', 'avec_cable', 'statut', 'poids_entree_kg')
-    list_filter = ('statut', 'type_periph', 'avec_cable')
+    list_display = ('numero_inventaire', 'type_periph', 'marque', 'statut', 'poids_entree_kg')
+    list_filter = ('statut', 'type_periph')
     search_fields = ('numero_inventaire', 'marque__nom', 'modele')
 
     fieldsets = (
-        ('Identification', {'fields': ('type_periph', 'marque', 'modele', 'numero_serie', 'statut')}),
-        ('Détails', {'fields': ('connectique', 'avec_cable')}),
-        ('Flux & Poids', {'fields': ('date_entree', 'poids_entree_kg', 'provenance', 'provenance_precisions', 'benevole_en_charge')}),
-        ('Sortie', {'fields': ('beneficiaire', 'organisme_recyclage', 'poids_sortie_kg', 'date_sortie')}),
+        ('Identification', {'fields': ('type_periph', 'marque', 'modele', 'numero_serie', 'statut', )}),
+        ('Détails', {'fields': ('connectique',)}),
+        ('Flux & Poids', {'fields': ('date_entree', 'poids_entree_kg', 'provenance', 'provenance_precisions', 'benevole_en_charge', )}),
+        ('Sortie', {'fields': ('beneficiaire', 'organisme_recyclage', 'poids_sortie_kg', 'date_sortie', )}),
     )
     # PAS DE save_model ICI -> Géré par le modèle
 

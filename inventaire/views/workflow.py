@@ -212,7 +212,7 @@ def modifier_materiel(request, pk):
         'show_repair_section': statut in ['CONFIGURATION', 'PRET_A_DON'],
         'show_validate_final_button': statut == 'CONFIGURATION',
         'is_locked': statut in ['DONNE', 'RECYCLAGE', 'POUR_PIECES', 'PERDU'],
-        'show_recycle_button': statut in ['DIAGNOSTIC', 'CONFIGURATION'], # boutons recycler et pour pièces
+        'show_recycle_button': statut in ['DIAGNOSTIC', 'CONFIGURATION'], 
         
         # La section Hardware est toujours visible (sauf si verrouillé), mais repliée en mode Réparation
         'hardware_collapsed': statut in ['CONFIGURATION', 'PRET_A_DON'], 
@@ -268,6 +268,7 @@ def modifier_materiel(request, pk):
 @benevole_actif_required
 @permission_required('inventaire.change_materiel', raise_exception=True)
 def modifier_materiel_simple(request, pk):
+
     materiel = get_object_or_404(Materiel, pk=pk)
     
     # 1. DÉTECTION DU TYPE ET SÉLECTION DU FORMULAIRE
@@ -299,14 +300,7 @@ def modifier_materiel_simple(request, pk):
         
         if form.is_valid():
             # Sauvegarde des champs spécifiques (diagonale, type_periph, etc.)
-            instance_enfant = form.save()
-            
-            # On récupère le parent pour gérer le statut et le rapport commun
-            # Le rapport_diagnostic est dans Materiel, mais comme on a hérité, 
-            # il faut parfois le sauver sur le parent explicitement si le form ne le couvre pas.
-            # Astuce : Dans nos forms, on a mis 'rapport_diagnostic' qui est dans Materiel.
-            # Django gère l'héritage, donc instance_enfant.save() met à jour aussi le parent.
-            # Mais pour être sûr pour le statut, on travaille sur 'materiel'.
+            instance_enfant = form.save()           
             
             commentaire = ""
             type_action = "NOTE"
@@ -376,8 +370,10 @@ def modifier_materiel_simple(request, pk):
     statut = materiel.statut
     display = {
         'show_start': statut == 'ENTREE',
-        'show_actions': statut == 'DIAGNOSTIC',
-        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PRET_A_DON', 'ATTENTE_DEMONTAGE'],
+        'show_diag_actions': statut == 'DIAGNOSTIC',
+        'show_wait_actions': statut == 'ATTENTE_PIECES',
+        'show_recycle_button': statut in ['DIAGNOSTIC','ATTENTE_PIECES'],
+        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'POUR_PIECES', 'PERDU'],
         'titre_type': type_appareil
     }
 
