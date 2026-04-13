@@ -131,6 +131,7 @@
                             {% elif materiel.statut == 'PRET_A_DON' %}<span class="badge bg-success">Prêt à donner</span>
                             {% elif materiel.statut == 'DONNE' %}<span class="badge bg-secondary">Donné</span>
                             {% elif materiel.statut == 'RECYCLAGE' %}<span class="badge bg-secondary">Recyclage</span>
+                            {% elif materiel.statut == 'POUR_PIECES' %}<span class="badge bg-secondary">Pour pièces</span>
                             {% else %}<span class="badge bg-light text-dark">{{ materiel.get_statut_display }}</span>
                             {% endif %}
                         </td>

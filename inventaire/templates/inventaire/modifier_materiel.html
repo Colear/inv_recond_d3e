@@ -393,6 +393,10 @@
                                                 onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
                                             ♻️ Recycler
                                         </button>
+                                        <button type="submit" name="action" value="wait_dismantling" class="btn btn-outline-dark" 
+                                                onclick="return confirm('⚠️ Utilisez cette option si vous souhaitez remettre en zone de stockage un ordinateur KO destiné à servir de réserve de pièces. A utiliser avec parcimonie en isolant ce matériel dans la zone dédié');">
+                                            ♻️ Pour pièces
+                                        </button>
                                     {% endif %}
                                 {% endif %}
 
@@ -406,8 +410,12 @@
                                     </button>
                                     {% if display.show_recycle_button %}
                                         <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ Confirmer le recyclage ?');">
+                                                onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
                                             ♻️ Recycler
+                                        </button>
+                                        <button type="submit" name="action" value="wait_dismantling" class="btn btn-outline-dark" 
+                                                onclick="return confirm('⚠️ Utilisez cette option si vous souhaitez remettre en zone de stockage un ordinateur KO destiné à servir de réserve de pièces. A utiliser avec parcimonie en isolant ce matériel dans la zone dédié');">
+                                            ♻️ Pour pièces
                                         </button>
                                     {% endif %}
                                 {% endif %}
@@ -422,8 +430,12 @@
                                     </button>
                                     {% if display.show_recycle_button %}
                                         <button type="submit" name="action" value="recycle_now" class="btn btn-outline-dark" 
-                                                onclick="return confirm('⚠️ Confirmer le recyclage ?');">
+                                                onclick="return confirm('⚠️ N\'utilisez cette action que si vous recyclez le PC sans en retirer aucune pièce (poids d\'entrée = poids de sortie) !\nDans le cas contraire utilisez plutôt l\'option Pour pièces.\nConfirmer le recyclage ?');">
                                             ♻️ Recycler
+                                        </button>
+                                        <button type="submit" name="action" value="wait_dismantling" class="btn btn-outline-dark" 
+                                                onclick="return confirm('⚠️ Utilisez cette option si vous souhaitez remettre en zone de stockage un ordinateur KO destiné à servir de réserve de pièces. A utiliser avec parcimonie en isolant ce matériel dans la zone dédié');">
+                                            ♻️ Pour pièces
                                         </button>
                                     {% endif %}
                                 {% endif %}

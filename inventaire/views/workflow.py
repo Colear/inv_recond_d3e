@@ -69,7 +69,9 @@ def modifier_materiel(request, pk):
                 instance.materiel_ptr.modele = nom_modele
             instance.materiel_ptr.save()
 
-            # Logique des Actions :
+
+            # === WORKFLOW ================================ 
+
             commentaire_intervention = ""
             type_action = "NOTE"
 
@@ -77,6 +79,10 @@ def modifier_materiel(request, pk):
             #   On ne change pas le statut, on positionne le bénévole qui a fait
             #   l'enregistrement sur le dossier
             if action == 'save_exit':
+                if instance.statut == 'DIAG':
+                    type_action = 'DIAG'
+                else:
+                    type_action = 'CONFIG'
                 commentaire_intervention = "Sauvegarde intermédiaire du travail."
                 if not instance.benevole_en_charge:
                     instance.benevole_en_charge = benevole
@@ -88,7 +94,7 @@ def modifier_materiel(request, pk):
             elif action == 'validate_diag_and_release':
                 instance.statut = 'CONFIGURATION'
                 instance.benevole_en_charge = None
-                type_action = 'TRANSFERT'
+                type_action = 'DIAG'
                 commentaire_intervention = "Diagnostic validé. Dossier relâché pour la suite (spécialiste)."
                 messages.success(request, "👋 Diagnostic validé et dossier relâché. Retour à l'inventaire.")
                 redirect_to_inventory = True 
@@ -109,8 +115,7 @@ def modifier_materiel(request, pk):
             #             Dans le cas contraire utiliser le passage en attente démontage
             elif action == 'recycle_now':
                 instance.statut = 'RECYCLAGE'
-                if not instance.benevole_en_charge:
-                    instance.benevole_en_charge = benevole
+                instance.benevole_en_charge = None
                 type_action = 'SORTIE'
                 raison = instance.rapport_diagnostic[:100] or "Non réparable (décision diagnostic)"
                 commentaire_intervention = f"Décision de recyclage : {raison}"
@@ -119,8 +124,9 @@ def modifier_materiel(request, pk):
 
             # 5. Attente de démontage - l'ordinateur doit être recyclé mais on va retirer des pièces avant
             elif action == 'wait_dismantling':
-                materiel.statut = 'POUR_PIECE'
-                materiel.benevole_en_charge = None
+                instance.statut = 'POUR_PIECES'
+                instance.benevole_en_charge = None
+                type_action = 'SORTIE'
                 raison = instance.rapport_diagnostic[:100] or "Non réparable (décision diagnostic)"
                 commentaire_intervention = f"Décision de recyclage avec récupération de pièces : {raison}"
                 messages.warning(request, "♻️ Matériel envoyé au recyclage avec récupération de pièces préalables.")
@@ -131,7 +137,8 @@ def modifier_materiel(request, pk):
                 instance.statut = 'ATTENTE_PIECES'
                 instance.benevole_en_charge = None                
                 raison = instance.rapport_diagnostic[:100] or "En attente de composants"
-                commentaire_intervention = f"Mise en attente de pièces par {benevole.get_full_name()}. Raison : {raison}"
+                type_action = 'DIAG'
+                commentaire_intervention = f"Mise en attente de pièces. Raison : {raison}"
                 messages.info(request, "⏳ Matériel placé en attente de pièces. Le dossier a été libéré pour un futur spécialiste.")
                 redirect_to_inventory = True
 
@@ -140,7 +147,8 @@ def modifier_materiel(request, pk):
                 instance.statut = 'CONFIGURATION'
                 instance.benevole_en_charge = benevole # Je me l'attribue
                 instance.date_prise_en_charge = timezone.now()
-                commentaire_intervention = "Réactivation et prise en charge complète (Hardware + Software)."
+                type_action = 'DIAG'
+                commentaire_intervention = "Matériel réparé, réactivation du dossier et bascule par le bénévole en configuration Linux et lociciels."
                 messages.success(request, "✅ Matériel réactivé. Vous restez en charge du dossier pour la configuration.")
                 redirect_to_inventory = False
 
@@ -148,14 +156,15 @@ def modifier_materiel(request, pk):
             elif action == 'reactivate_release':
                 instance.statut = 'CONFIGURATION'
                 instance.benevole_en_charge = None
-                commentaire_intervention = f"Réactivation Hardware par {benevole.get_full_name()}. Pièces installées. Dossier relâché pour configuration Linux."
+                type_action = 'DIAG'
+                commentaire_intervention = "Matériel réparé, le dossier est réactivé et libéré pour prise en charge par un autre bénévole."
                 messages.success(request, "🔧 Matériel réactivé (hardware fait). Le dossier est retourné à l'inventaire pour un spécialiste Linux.")
                 redirect_to_inventory = True
 
             # 9. Validation de la configuration, passage en prêt à donner
             elif action == 'validate_config':
                 instance.statut = 'PRET_A_DON'
-                type_action = 'REPA'
+                type_action = 'CONFIG'
                 commentaire_intervention = "Réparation et configuration validées. Prêt à donner."
                 messages.success(request, "🎉 Matériel prêt à être donné !")
                 redirect_to_inventory = True
@@ -202,7 +211,7 @@ def modifier_materiel(request, pk):
         'show_wait_actions': statut == 'ATTENTE_PIECES',
         'show_repair_section': statut in ['CONFIGURATION', 'PRET_A_DON'],
         'show_validate_final_button': statut == 'CONFIGURATION',
-        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'PERDU'],
+        'is_locked': statut in ['DONNE', 'RECYCLAGE', 'POUR_PIECES', 'PERDU'],
         'show_recycle_button': statut in ['DIAGNOSTIC', 'CONFIGURATION'], # boutons recycler et pour pièces
         
         # La section Hardware est toujours visible (sauf si verrouillé), mais repliée en mode Réparation

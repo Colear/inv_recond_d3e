@@ -81,11 +81,11 @@ Notes de travail et de prise en charge par les bénévoles. Plus de papier !
 
 class Intervention(models.Model):
     TYPE_ACTION_CHOICES = [
-        ('DIAG', 'Diagnostic'),
-        ('REPA', 'Réparation'),
-        ('NOTE', 'Note interne'),
+        ('DIAG', 'Diagnostic et réparation'),
+        ('CONFIG', 'Configuration OS et logicielle'),
+        ('NOTE', 'Note de travail'),
         ('TRANSFERT', 'Transfert de prise en charge'),
-        ('SORTIE', 'Sortie (Don/Recyclage)'),
+        ('SORTIE', 'Sortie (don/recyclage)'),
     ]
 
     materiel = models.ForeignKey('Materiel', on_delete=models.CASCADE, related_name='interventions')
