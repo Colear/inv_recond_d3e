@@ -1,6 +1,6 @@
 from django import forms
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Fieldset
+from crispy_forms.layout import Layout, Fieldset, Field
 from ..models import Ordinateur, Ecran, Peripherique
 
 
@@ -164,7 +164,8 @@ class DiagnosticEcranForm(forms.ModelForm):
             'rapport_diagnostic': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'diagonale_pouces': forms.Select(attrs={'class': 'form-select'}),
             'resolution': forms.TextInput(attrs={'class': 'form-control'}),
-            'connectique': forms.TextInput(attrs={'class': 'form-control'}),
+            'connectique': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+            # 'connectique': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -180,7 +181,7 @@ class DiagnosticEcranForm(forms.ModelForm):
         self.helper.layout = Layout(
             'diagonale_pouces',
             'resolution',
-            'connectique', 
+            Field('connectique', template='crispy/forms/checkboxselectmultiple.html'),  
             'rapport_diagnostic',
         )
 
